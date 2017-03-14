@@ -1,5 +1,4 @@
 import javax.swing.*;
-import java.applet.Applet;
 import java.awt.*;
 import java.awt.event.*;
 
@@ -7,13 +6,13 @@ import java.awt.event.*;
  * Created by andyk on 2017-03-14.
  */
 public class myPaint extends JFrame {
-    JPanel draw;
-    JPanel controls;
-    String mode="none";
-    JLabel modeLbl;
-    int prevx,prevy,startX,startY = 0;
+    private JPanel draw;
+    private JPanel controls;
+    private String mode="none";
+    private JLabel modeLbl;
+    private int prevx,prevy,startX,startY = 0;
 
-    public myPaint(){
+    public void init(){
         GridBagConstraints c = new GridBagConstraints();
         this.setTitle("my Painter 9001");
         this.setMinimumSize(new Dimension(600,400));
@@ -55,7 +54,7 @@ public class myPaint extends JFrame {
         draw.addMouseMotionListener(new mouseMoveListener());
     }
 
-    public void drawNewLine(int stx, int sty,int newX, int newY, boolean erase){
+    private void drawNewLine(int stx, int sty,int newX, int newY, boolean erase){
         Graphics g = draw.getGraphics();
         if (erase) {
             g.setColor(Color.white);
@@ -66,8 +65,8 @@ public class myPaint extends JFrame {
         draw.paintComponents(g);
     }
 
-    public void drawNewRect(int newX, int newY){
-        int tw,th,tx,ty = 0;
+    private void drawNewRect(int newX, int newY){
+        int tw,th,tx,ty;
         Graphics g = draw.getGraphics();
         g.setColor(Color.white);
         tw = Math.abs(prevx-startX);
@@ -84,9 +83,27 @@ public class myPaint extends JFrame {
         draw.paintComponents(g);
     }
 
+    private void drawNewEllipse(int newX, int newY){
+        int tw,th,tx,ty;
+        Graphics g = draw.getGraphics();
+        g.setColor(Color.white);
+        tw = Math.abs(prevx-startX);
+        th = Math.abs(prevy-startY);
+        tx = Math.min(startX,prevx);
+        ty = Math.min(startY,prevy);
+        g.drawOval(tx,ty,tw,th);
+        g.setColor(Color.black);
+        tw = Math.abs(newX-startX);
+        th = Math.abs(newY-startY);
+        tx = Math.min(startX,newX);
+        ty = Math.min(startY,newY);
+        g.drawOval(tx,ty,tw,th);
+        draw.paintComponents(g);
+    }
+
     public static void main(String[] args){
         myPaint paint = new myPaint();
-//        paint.setVisible(true);
+        paint.init();
     }
 
     //CLASSES ------------------------------------------------
@@ -134,6 +151,10 @@ public class myPaint extends JFrame {
                     prevy = e.getY();
                     break;
                 case "ellipse":
+                    startX = e.getX();
+                    startY = e.getY();
+                    prevx = e.getX();
+                    prevy = e.getY();
                     break;
                 case "draw":
                     startX = e.getX();
@@ -174,6 +195,7 @@ public class myPaint extends JFrame {
                     drawNewRect(e.getX(),e.getY());
                     break;
                 case "ellipse":
+                    drawNewEllipse(e.getX(),e.getY());
                     break;
                 case "draw":
                     drawNewLine(prevx,prevy,e.getX(), e.getY(),false);
