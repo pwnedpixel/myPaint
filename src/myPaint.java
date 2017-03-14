@@ -84,6 +84,24 @@ public class myPaint extends JFrame {
         draw.paintComponents(g);
     }
 
+    public void drawNewElipse(int newX, int newY){
+        int tw,th,tx,ty = 0;
+        Graphics g = draw.getGraphics();
+        g.setColor(Color.white);
+        tw = Math.abs(prevx-startX);
+        th = Math.abs(prevy-startY);
+        tx = Math.min(startX,prevx);
+        ty = Math.min(startY,prevy);
+        g.drawOval(tx,ty,tw,th);
+        g.setColor(Color.black);
+        tw = Math.abs(newX-startX);
+        th = Math.abs(newY-startY);
+        tx = Math.min(startX,newX);
+        ty = Math.min(startY,newY);
+        g.drawOval(tx,ty,tw,th);
+        draw.paintComponents(g);
+    }
+
     public static void main(String[] args){
         myPaint paint = new myPaint();
 //        paint.setVisible(true);
@@ -134,6 +152,10 @@ public class myPaint extends JFrame {
                     prevy = e.getY();
                     break;
                 case "ellipse":
+                    startX = e.getX();
+                    startY = e.getY();
+                    prevx = e.getX();
+                    prevy = e.getY();
                     break;
                 case "draw":
                     startX = e.getX();
@@ -174,6 +196,7 @@ public class myPaint extends JFrame {
                     drawNewRect(e.getX(),e.getY());
                     break;
                 case "ellipse":
+                    drawNewElipse(e.getX(),e.getY());
                     break;
                 case "draw":
                     drawNewLine(prevx,prevy,e.getX(), e.getY(),false);
