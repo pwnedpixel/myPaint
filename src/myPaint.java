@@ -1,6 +1,8 @@
 import javax.swing.*;
 import java.applet.Applet;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 /**
  * Created by andyk on 2017-03-14.
@@ -32,12 +34,40 @@ public class myPaint extends JFrame {
         //Add The button
         modeLbl = new JLabel("Select mode");
         controls.add(modeLbl);
-        controls.add(new JButton("Line"));
-        controls.add(new JButton("Square"));
+        //create and add buttons
+        JButton lineBtn = new JButton("line");
+        JButton squareBtn = new JButton("square");
+        controls.add(lineBtn);
+        controls.add(squareBtn);
+
+        //add listeners
+        lineBtn.addActionListener(new modeListener());
+        squareBtn.addActionListener(new modeListener());
+
     }
+
 
     public static void main(String[] args){
         myPaint paint = new myPaint();
 //        paint.setVisible(true);
+    }
+
+    //CLASSES ------------------------------------------------
+    public class modeListener implements ActionListener{
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            System.out.println(e.getActionCommand());
+            mode = e.getActionCommand();
+            modeLbl.setText("Mode: "+mode);
+            switch(mode){
+                case "line":
+                    break;
+                case "square":
+                    break;
+                default:
+                    break;
+            }
+        }
     }
 }
