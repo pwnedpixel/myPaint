@@ -45,6 +45,7 @@ public class myPaint extends JFrame {
         modeLbl = new JLabel("Select mode");
         selColour = new JLabel("Current Colour: black");
         controls.add(modeLbl);
+        controls.add(new JLabel("---------------------------------------"));
 
         //Control Buttons----------
         JButton undoBtn = new JButton("undo");
@@ -79,11 +80,13 @@ public class myPaint extends JFrame {
         JButton blackButton = new JButton("black");
         JButton blueButton = new JButton("blue");
         JButton yellowButton = new JButton("yellow");
+        colours.add(selColour);
+        colours.add(new JLabel("---------------------------------------"));
         colours.add(redButton);
         colours.add(blackButton);
         colours.add(blueButton);
         colours.add(yellowButton);
-        colours.add(selColour);
+
 
         //colour button listeners------
         redButton.addActionListener(new ColourButtonListener());
