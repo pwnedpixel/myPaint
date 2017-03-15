@@ -1,19 +1,21 @@
 import javax.swing.*;
-import java.applet.Applet;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.LinkedList;
 
 /**
  * Created by andyk on 2017-03-14.
  */
 public class myPaint extends JFrame {
-    JPanel draw;
-    JPanel controls;
-    String mode="none";
-    JLabel modeLbl;
-    int prevx,prevy,startX,startY = 0;
+    private JPanel draw;
+    private JPanel controls;
+    private String mode="none";
+    private JLabel modeLbl;
+    private int prevx,prevy,startX,startY = 0;
+    public ShapeComponent shapesComp;
+    private Color currentColour = Color.black;
 
-    public myPaint(){
+    public void init(){
         GridBagConstraints c = new GridBagConstraints();
         this.setTitle("my Painter 9001");
         this.setMinimumSize(new Dimension(600,400));
@@ -24,9 +26,10 @@ public class myPaint extends JFrame {
 
         draw = new JPanel();
         controls = new JPanel();
+        shapesComp = new ShapeComponent(new String[]{});
         draw.setPreferredSize(new Dimension(375,360));
         controls.setPreferredSize(new Dimension(200,360));
-        draw.setBorder(BorderFactory.createLineBorder(Color.black));
+        //draw.setBorder(BorderFactory.createLineBorder(Color.black));
         controls.setBorder(BorderFactory.createLineBorder(Color.red));
         draw.setBackground(Color.white);
         this.add(draw,c);
@@ -36,27 +39,40 @@ public class myPaint extends JFrame {
         modeLbl = new JLabel("Select mode");
         controls.add(modeLbl);
         //create and add buttons
+        JButton undoBtn = new JButton("undo");
+        JButton redoBtn = new JButton("redo");
         JButton lineBtn = new JButton("line");
-        JButton squareBtn = new JButton("rectangle");
+        JButton rectBtn = new JButton("rectangle");
         JButton ellipseBtn = new JButton("ellipse");
         JButton drawBtn = new JButton("draw");
+        JButton circleBtn = new JButton("circle");
+        JButton squareBtn = new JButton("square");
+        controls.add(undoBtn);
+        controls.add(redoBtn);
         controls.add(lineBtn);
-        controls.add(squareBtn);
+        controls.add(rectBtn);
         controls.add(ellipseBtn);
         controls.add(drawBtn);
+        controls.add(circleBtn);
+        controls.add(squareBtn);
 
         //add listeners
-        lineBtn.addActionListener(new modeListener());
-        squareBtn.addActionListener(new modeListener());
-        ellipseBtn.addActionListener(new modeListener());
-        drawBtn.addActionListener(new modeListener());
+        lineBtn.addActionListener(new ModeListener());
+        rectBtn.addActionListener(new ModeListener());
+        ellipseBtn.addActionListener(new ModeListener());
+        drawBtn.addActionListener(new ModeListener());
+        circleBtn.addActionListener(new ModeListener());
+        squareBtn.addActionListener(new ModeListener());
+        undoBtn.addActionListener(new ModeListener());
+        redoBtn.addActionListener(new ModeListener());
 
-        draw.addMouseListener(new mouseButtonListener());
-        draw.addMouseMotionListener(new mouseMoveListener());
+        draw.addMouseListener(new MouseButtonListener());
+        draw.addMouseMotionListener(new MouseMoveListener());
     }
 
-    public void drawNewLine(int stx, int sty,int newX, int newY, boolean erase){
+    private void drawNewLine(int stx, int sty,int newX, int newY, boolean erase){
         Graphics g = draw.getGraphics();
+        refreshShapes();
         if (erase) {
             g.setColor(Color.white);
             g.drawLine(stx, sty, prevx, prevy);
@@ -66,8 +82,9 @@ public class myPaint extends JFrame {
         draw.paintComponents(g);
     }
 
-    public void drawNewRect(int newX, int newY){
-        int tw,th,tx,ty = 0;
+    private void drawNewRect(int newX, int newY){
+        int tw,th,tx,ty;
+        refreshShapes();
         Graphics g = draw.getGraphics();
         g.setColor(Color.white);
         tw = Math.abs(prevx-startX);
@@ -75,6 +92,7 @@ public class myPaint extends JFrame {
         tx = Math.min(startX,prevx);
         ty = Math.min(startY,prevy);
         g.drawRect(tx,ty,tw,th);
+
         g.setColor(Color.black);
         tw = Math.abs(newX-startX);
         th = Math.abs(newY-startY);
@@ -82,10 +100,11 @@ public class myPaint extends JFrame {
         ty = Math.min(startY,newY);
         g.drawRect(tx,ty,tw,th);
         draw.paintComponents(g);
+
     }
 
-    public void drawNewElipse(int newX, int newY){
-        int tw,th,tx,ty = 0;
+    private void drawNewElipse(int newX, int newY){
+        int tw,th,tx,ty;
         Graphics g = draw.getGraphics();
         g.setColor(Color.white);
         tw = Math.abs(prevx-startX);
@@ -93,22 +112,102 @@ public class myPaint extends JFrame {
         tx = Math.min(startX,prevx);
         ty = Math.min(startY,prevy);
         g.drawOval(tx,ty,tw,th);
+
         g.setColor(Color.black);
         tw = Math.abs(newX-startX);
         th = Math.abs(newY-startY);
         tx = Math.min(startX,newX);
         ty = Math.min(startY,newY);
         g.drawOval(tx,ty,tw,th);
+        draw.paintComponents(g);
+    }
+
+    private void drawNewSquare(int newX, int newY){
+        Graphics g = draw.getGraphics();
+        g.setColor(Color.white);
+        g.drawRect(startX,startY,Math.max(prevx-startX,prevy-startY),Math.max(prevx-startX,prevy-startY));
+
+        g.setColor(Color.black);
+        g.drawRect(startX,startY,Math.max(newX-startX,newY-startY),Math.max(newX-startX,newY-startY));
+        //draw.paintComponents(g);
+
+    }
+
+    private void refreshShapes(){
+        Graphics g = draw.getGraphics();
+        Color current = currentColour;
+        //g.fillRect(0,0,draw.getWidth(),draw.getHeight());
+        LinkedList<String[]> shapes = shapesComp.getShapes();
+        for (String[] shape : shapes){
+            switch(shape[0]){
+                case "line":
+                    g.setColor(Color.getColor(shape[5]));
+                    g.drawLine(Integer.valueOf(shape[1]),Integer.valueOf(shape[2]),Integer.valueOf(shape[3]),Integer.valueOf(shape[4]));
+                    break;
+                case "rectangle":
+                    g.setColor(Color.getColor(shape[5]));
+                    g.drawRect(Math.min(Integer.valueOf(shape[1]),Integer.valueOf(shape[3])),Math.min(Integer.valueOf(shape[2]),Integer.valueOf(shape[4])),
+                            Math.abs(Integer.valueOf(shape[1])-Integer.valueOf(shape[3])),Math.abs(Integer.valueOf(shape[2])-Integer.valueOf(shape[4])));
+                    break;
+            }
+        }
+        draw.paintComponents(g);
+        g.setColor(current);
+    }
+
+    private void blankSpace(){
+        Graphics g = draw.getGraphics();
+        g.setColor(Color.white);
+        g.fillRect(0,0,draw.getWidth(),draw.getHeight());
         draw.paintComponents(g);
     }
 
     public static void main(String[] args){
         myPaint paint = new myPaint();
-//        paint.setVisible(true);
+        paint.init();
     }
 
     //CLASSES ------------------------------------------------
-    public class modeListener implements ActionListener{
+    public class ShapeComponent {
+        LinkedList<String[]> shapes = new LinkedList<>();
+        LinkedList<String[]> undone = new LinkedList<>();
+        public ShapeComponent(String[] args){
+
+        }
+
+        public void addShape(String[] args){
+            System.out.println("Added "+args[0]);
+            shapes.add(args);
+        }
+
+        public LinkedList<String[]> getShapes(){
+            return shapes;
+        }
+
+        public String[] getShape(int index){
+            return shapes.get(index);
+        }
+
+        public void undo(){
+            if (shapes.size()!=0){
+                System.out.println("UndoCalled, "+shapes.size());
+                undone.add(shapes.get(shapes.size()-1));
+                shapes.remove(shapes.size()-1);
+            }
+        }
+
+        public void redo(){
+            if (undone.size()!=0){
+                System.out.println("UndoCalled");
+                shapes.add(undone.get(undone.size()-1));
+                undone.remove(undone.size()-1);
+            }
+        }
+
+
+    }
+
+    public class ModeListener implements ActionListener{
 
         @Override
         public void actionPerformed(ActionEvent e) {
@@ -116,10 +215,15 @@ public class myPaint extends JFrame {
             mode = e.getActionCommand();
             modeLbl.setText("Mode: "+mode);
             switch(mode){
-                case "line":
-                    //drawLine();
+                case "undo":
+                    shapesComp.undo();
+                    blankSpace();
+                    refreshShapes();
                     break;
-                case "rectangle":
+                case "redo":
+                    shapesComp.redo();
+                    blankSpace();
+                    refreshShapes();
                     break;
                 case "ellipse":
                     break;
@@ -129,7 +233,7 @@ public class myPaint extends JFrame {
         }
     }
 
-    public class mouseButtonListener implements MouseListener {
+    public class MouseButtonListener implements MouseListener {
 
         @Override
         public void mouseClicked(MouseEvent e) {
@@ -138,39 +242,31 @@ public class myPaint extends JFrame {
         @Override
         public void mousePressed(MouseEvent e) {
 
+
             switch(mode){
-                case "line":
-                    startX = e.getX();
-                    startY = e.getY();
-                    prevx = e.getX();
-                    prevy = e.getY();
-                    break;
-                case "rectangle":
-                    startX = e.getX();
-                    startY = e.getY();
-                    prevx = e.getX();
-                    prevy = e.getY();
-                    break;
-                case "ellipse":
-                    startX = e.getX();
-                    startY = e.getY();
-                    prevx = e.getX();
-                    prevy = e.getY();
-                    break;
-                case "draw":
-                    startX = e.getX();
-                    startY = e.getY();
-                    prevx = e.getX();
-                    prevy = e.getY();
-                    break;
                 default:
+                    startX = e.getX();
+                    startY = e.getY();
+                    prevx = e.getX();
+                    prevy = e.getY();
                     break;
             }
         }
 
         @Override
         public void mouseReleased(MouseEvent e) {
+            //System.out.println("Release");
+            switch(mode){
+                case "line":
+                    shapesComp.addShape(new String[]{"line",Integer.toString(startX),Integer.toString(startY),Integer.toString(e.getX()),Integer.toString(e.getY()),currentColour.toString()});
+                    break;
+                case "rectangle" :
+                    shapesComp.addShape(new String[]{"rectangle",Integer.toString(startX),Integer.toString(startY),Integer.toString(e.getX()),Integer.toString(e.getY()),currentColour.toString()});
+                    break;
+                default:
 
+                    break;
+            }
         }
 
         @Override
@@ -184,7 +280,7 @@ public class myPaint extends JFrame {
         }
     }
 
-    public class mouseMoveListener implements MouseMotionListener {
+    public class MouseMoveListener implements MouseMotionListener {
 
         @Override
         public void mouseDragged(MouseEvent e) {
@@ -200,6 +296,9 @@ public class myPaint extends JFrame {
                     break;
                 case "draw":
                     drawNewLine(prevx,prevy,e.getX(), e.getY(),false);
+                    break;
+                case "square":
+                    drawNewSquare(e.getX(),e.getY());
                     break;
                 default:
                     break;
