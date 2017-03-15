@@ -178,8 +178,8 @@ public class myPaint extends JFrame {
     /**
      * Draws a square from the startX and startY to the given x and y parameters.
      * Erases the square that went from start to previous coordinates.
-     * @param newX
-     * @param newY
+     * @param newX the new second x coordinate
+     * @param newY the new second y coordinate
      */
     private void drawNewSquare(int newX, int newY){
         int tw,th,max,newStartX,newStartY;
@@ -205,6 +205,34 @@ public class myPaint extends JFrame {
     }
 
     /**
+     * Draws a circle from the startX and startY to the given x and y parameters.
+     * Erases the circle that went from start to previous coordinates.
+     * @param newX the new second x coordinate
+     * @param newY the new second y coordinate
+     */
+    private void drawNewCircle(int newX, int newY){
+        int tw,th,max,newStartX,newStartY;
+        refreshShapes();
+        Graphics g = draw.getGraphics();
+        g.setColor(Color.white);
+        tw = Math.abs(prevx-startX);
+        th = Math.abs(prevy-startY);
+        max = Math.max(tw,th);
+        newStartX=(prevx-startX<0)?startX-max:startX;
+        newStartY=(prevy-startY<0)?startY-max:startY;
+        g.drawOval(newStartX,newStartY,max,max);
+
+        g.setColor(currentColour);
+        tw = Math.abs(newX-startX);
+        th = Math.abs(newY-startY);
+        max = Math.max(tw,th);
+        newStartX=(newX-startX<0)?startX-max:startX;
+        newStartY=(newY-startY<0)?startY-max:startY;
+        g.drawOval(newStartX,newStartY,max,max);
+        draw.paintComponents(g);
+    }
+
+    /**
      * called to redraw all saved shapes and shape components
      */
     private void refreshShapes(){
@@ -218,6 +246,7 @@ public class myPaint extends JFrame {
     private void drawShapeComponent(ShapeComponent componentToDraw){
         LinkedList<String[]> shapes = componentToDraw.getShapes();
         Graphics g = draw.getGraphics();
+        int max, newStartX,newStartY;
         for (String[] shape : shapes){
             switch(shape[0]){
                 case "line":
@@ -238,10 +267,19 @@ public class myPaint extends JFrame {
                     int[] sqVals = {Integer.valueOf(shape[1]),Integer.valueOf(shape[2]),Integer.valueOf(shape[3]),Integer.valueOf(shape[4])};
                     g.setColor(new Color(Integer.parseInt(shape[5])));
 
-                    int max = Math.max(Math.abs(sqVals[2]-sqVals[0]),Math.abs(sqVals[3]-sqVals[1]));
-                    int newStartX=(sqVals[2]-sqVals[0]<0)?sqVals[0]-max:sqVals[0];
-                    int newStartY=(sqVals[3]-sqVals[1]<0)?sqVals[1]-max:sqVals[1];
+                    max = Math.max(Math.abs(sqVals[2]-sqVals[0]),Math.abs(sqVals[3]-sqVals[1]));
+                    newStartX=(sqVals[2]-sqVals[0]<0)?sqVals[0]-max:sqVals[0];
+                    newStartY=(sqVals[3]-sqVals[1]<0)?sqVals[1]-max:sqVals[1];
                     g.drawRect(newStartX,newStartY,max,max);
+                    break;
+                case "circle" :
+                    int[] cirVals = {Integer.valueOf(shape[1]),Integer.valueOf(shape[2]),Integer.valueOf(shape[3]),Integer.valueOf(shape[4])};
+                    g.setColor(new Color(Integer.parseInt(shape[5])));
+
+                    max = Math.max(Math.abs(cirVals[2]-cirVals[0]),Math.abs(cirVals[3]-cirVals[1]));
+                    newStartX=(cirVals[2]-cirVals[0]<0)?cirVals[0]-max:cirVals[0];
+                    newStartY=(cirVals[3]-cirVals[1]<0)?cirVals[1]-max:cirVals[1];
+                    g.drawOval(newStartX,newStartY,max,max);
                     break;
                 case "composite":
                     drawShapeComponent(componentToDraw.getComposite(Integer.valueOf(shape[1])));
@@ -336,7 +374,6 @@ public class myPaint extends JFrame {
          * @param args The properties of the shape.
          */
         private void addToComposite(String[] args){
-            System.out.println("add to comp Composite");
             composites.get(composites.size()-1).addShape(args);
         }
 
@@ -358,7 +395,7 @@ public class myPaint extends JFrame {
          */
         private void redo(){
             if (undone.size()!=0){
-                System.out.println("UndoCalled");
+                System.out.println("RedoCalled");
                 shapes.add(undone.get(undone.size()-1));
                 undone.remove(undone.size()-1);
             }
@@ -453,6 +490,10 @@ public class myPaint extends JFrame {
                     shapesComp.addShape(new String[]{"square",Integer.toString(startX),Integer.toString(startY),Integer.toString(e.getX())
                             ,Integer.toString(e.getY()),Integer.toString(currentColour.getRGB())});
                     break;
+                case "circle":
+                    shapesComp.addShape(new String[]{"circle",Integer.toString(startX),Integer.toString(startY),Integer.toString(e.getX())
+                            ,Integer.toString(e.getY()),Integer.toString(currentColour.getRGB())});
+                    break;
                 case "draw" :
                     //we are done adding to the current composite shape. it will add itself to the list of shapes
                     //when endComposite() is called.
@@ -503,6 +544,9 @@ public class myPaint extends JFrame {
                     break;
                 case "square":
                     drawNewSquare(e.getX(),e.getY());
+                    break;
+                case "circle":
+                    drawNewCircle(e.getX(),e.getY());
                     break;
                 default:
                     break;
