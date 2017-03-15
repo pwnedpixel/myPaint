@@ -17,6 +17,9 @@ public class myPaint extends JFrame {
     private ShapeComponent shapesComp;
     private Color currentColour = Color.black;
 
+    /**
+     * Initializes the layout of the UI, adds event listeners to the buttons and paint are
+     */
     public void init(){
         GridBagConstraints c = new GridBagConstraints();
         this.setTitle("my Painter 9001");
@@ -98,6 +101,14 @@ public class myPaint extends JFrame {
         draw.addMouseMotionListener(new MouseMoveListener());
     }
 
+    /**
+     * Erases the old line, and then draws a line to the new coordinates
+     * @param stx x coordinate of the line start
+     * @param sty y coordinate of the line start
+     * @param newX x coordinate of the line end
+     * @param newY y coordinate of the line end
+     * @param erase where or not to erase the old line
+     */
     private void drawNewLine(int stx, int sty,int newX, int newY, boolean erase){
         Graphics g = draw.getGraphics();
         refreshShapes();
@@ -110,6 +121,12 @@ public class myPaint extends JFrame {
         draw.paintComponents(g);
     }
 
+    /**
+     * Draws a new rectangle from the starting points to the new coordinates.
+     * Erases the rectangle that went from start to previous coordinates.
+     * @param newX the new second x coordinate
+     * @param newY the new second y coordinate
+     */
     private void drawNewRect(int newX, int newY){
         int tw,th,tx,ty;
         refreshShapes();
@@ -131,6 +148,12 @@ public class myPaint extends JFrame {
 
     }
 
+    /**
+     * Draws an ellipse from the startX and startY to the given x and y parameters.
+     * Erases the ellipse that went from start to previous coordinates.
+     * @param newX the new second x coordinate
+     * @param newY the new second y coordinate
+     */
     private void drawNewEllipse(int newX, int newY){
         int tw,th,tx,ty;
         refreshShapes();
@@ -151,6 +174,12 @@ public class myPaint extends JFrame {
         draw.paintComponents(g);
     }
 
+    /**
+     * Draws a square from the startX and startY to the given x and y parameters.
+     * Erases the square that went from start to previous coordinates.
+     * @param newX
+     * @param newY
+     */
     private void drawNewSquare(int newX, int newY){
         Graphics g = draw.getGraphics();
         g.setColor(Color.white);
@@ -158,15 +187,21 @@ public class myPaint extends JFrame {
 
         g.setColor(currentColour);
         g.drawRect(startX,startY,Math.max(newX-startX,newY-startY),Math.max(newX-startX,newY-startY));
-        //draw.paintComponents(g);
+        draw.paintComponents(g);
 
     }
 
+    /**
+     * called to redraw all saved shapes and shape components
+     */
     private void refreshShapes(){
         drawShapeComponent(shapesComp);
-
     }
 
+    /**
+     * Draws the shapes from the given shape component
+     * @param componentToDraw The component containing the shapes (or further components)
+     */
     private void drawShapeComponent(ShapeComponent componentToDraw){
         LinkedList<String[]> shapes = componentToDraw.getShapes();
         Graphics g = draw.getGraphics();
@@ -187,8 +222,6 @@ public class myPaint extends JFrame {
                     g.drawOval(Math.min(vals[0],vals[2]),Math.min(vals[1],vals[3]),Math.abs(vals[2]-vals[0]), Math.abs(vals[1]-vals[3]));
                     break;
 
-
-
                 case "composite":
                     drawShapeComponent(componentToDraw.getComposite(Integer.valueOf(shape[1])));
                     break;
@@ -197,6 +230,9 @@ public class myPaint extends JFrame {
         draw.paintComponents(g);
     }
 
+    /**
+     * Sets the entire drawing area to white. Used before calling a refresh
+     */
     private void blankSpace(){
         Graphics g = draw.getGraphics();
         g.setColor(Color.white);
@@ -204,49 +240,87 @@ public class myPaint extends JFrame {
         draw.paintComponents(g);
     }
 
+    /**
+     * Run this.
+     * Creates an instance of myPaint and calls the init function
+     * @param args
+     */
     public static void main(String[] args){
         myPaint paint = new myPaint();
         paint.init();
     }
 
     //CLASSES ------------------------------------------------
+
+    /**
+     * handles the storage of shapes, composites and redo/undo functions
+     */
     private class ShapeComponent {
         LinkedList<String[]> shapes = new LinkedList<>();
         LinkedList<String[]> undone = new LinkedList<>();
         LinkedList<ShapeComponent> composites = new LinkedList<>();
+
+        /**
+         * constructor. Doesn't really do anything
+         */
         private ShapeComponent(){
 
         }
 
+        /**
+         * Adds a shape with the given arguments to the list of shapes
+         * @param args the properties of the shape
+         */
         private void addShape(String[] args){
-            System.out.println("Added "+args[0]);
             shapes.add(args);
         }
 
+        /**
+         * Returns the LinkedList of shapes
+         * @return the {@link LinkedList} {@link #shapes} which contains the shapes
+         */
         private LinkedList<String[]> getShapes(){
             return shapes;
         }
 
-        private int getCompSize(){
-            return composites.size();
-        }
-
+        /**
+         * Composites are store in a seperate list. This function allows access to one at a given index.
+         * The index is saved in one of the composite type shape's properties.
+         * @param index the index of the composite to fetch.
+         * @return a {@link #ShapeComponent()} object.
+         */
         private ShapeComponent getComposite(int index){
             return composites.get(index);
         }
 
+        /**
+         * creates a new composite. Calls to {@link #addToComposite(String[])} will add the shapes to this new
+         * composite.
+         */
         private void startComposite(){
             composites.add(new ShapeComponent());
         }
 
+        /**
+         * Adds the currently open composite to the list of shapes. The shape title is "composite" and
+         * the property is its index in {@link #composites}.
+         */
         private void endComposite(){
             shapes.add(new String[]{"composite",Integer.toString(composites.size()-1)});
         }
 
+        /**
+         * Adds a shape (and it's properties) to the currently open composite.
+         * @param args The properties of the shape.
+         */
         private void addToComposite(String[] args){
             composites.get(composites.size()-1).addShape(args);
         }
 
+        /**
+         * Undoes the last drawn shape by moving it from {@link #shapes} to {@link #undone}.
+         * This will prevent it from getting redrawn, but make it available to be redone.
+         */
         private void undo(){
             if (shapes.size()!=0){
                 System.out.println("UndoCalled");
@@ -255,6 +329,10 @@ public class myPaint extends JFrame {
             }
         }
 
+        /**
+         * Re-adds the last drawn shape by moving it from {@link #undone} to {@link #shapes}.
+         * This will allow to to be draw on the next shape refresh.
+         */
         private void redo(){
             if (undone.size()!=0){
                 System.out.println("UndoCalled");
@@ -264,11 +342,21 @@ public class myPaint extends JFrame {
         }
     }
 
+    /**
+     * Used to detect changes to the current draw mode
+     */
     public class ModeListener implements ActionListener{
 
+        /**
+         * Called when one of the mode buttons is pressed.
+         * @param e the object that cause the action.
+         */
         @Override
         public void actionPerformed(ActionEvent e) {
             System.out.println(e.getActionCommand());
+
+            //sets the current mode to the button that was pressed.
+            //If the given button was "undo" or "redo" then the mode stays the same.
             mode = (e.getActionCommand().equals("undo") || e.getActionCommand().equals("redo"))?mode:e.getActionCommand();
             modeLbl.setText("Mode: "+mode);
             switch(e.getActionCommand()){
@@ -290,18 +378,25 @@ public class myPaint extends JFrame {
         }
     }
 
+    /**
+     * Used to handle mouse click/release events
+     */
     public class MouseButtonListener implements MouseListener {
 
         @Override
         public void mouseClicked(MouseEvent e) {
         }
 
+        /**
+         * Called when the mouse button is pressed
+         * @param e The properties of the pointer.
+         */
         @Override
         public void mousePressed(MouseEvent e) {
-
-
             switch(mode){
                 case "draw":
+                    //if the current mode is "draw" a new composite shape needs to be started.
+                    //lines created while in the draw mode will be added to this composite.
                     shapesComp.startComposite();
                 default:
                     startX = e.getX();
@@ -312,9 +407,13 @@ public class myPaint extends JFrame {
             }
         }
 
+        /**
+         * Handles the mouse button release event. When the mouse is release, the drawn shape is added to the
+         * List of shapes. (it gets saved)
+         * @param e the properties of the event.
+         */
         @Override
         public void mouseReleased(MouseEvent e) {
-            //System.out.println("Release");
             switch(mode){
                 case "line":
                     shapesComp.addShape(new String[]{"line",Integer.toString(startX),Integer.toString(startY),Integer.toString(e.getX()),Integer.toString(e.getY()),Integer.toString(currentColour.getRGB())});
@@ -326,6 +425,8 @@ public class myPaint extends JFrame {
                 case "ellipse" :
                     shapesComp.addShape(new String[]{"ellipse",Integer.toString(startX),Integer.toString(startY), Integer.toString(e.getX()),Integer.toString(e.getY()),Integer.toString(currentColour.getRGB())});
                 case "draw" :
+                    //we are done adding to the current composite shape. it will add itself to the list of shapes
+                    //when endComposite() is called.
                     shapesComp.endComposite();
                 default:
 
@@ -344,8 +445,16 @@ public class myPaint extends JFrame {
         }
     }
 
+    /**
+     * Listener for mouse movement events.
+     */
     public class MouseMoveListener implements MouseMotionListener {
 
+        /**
+         * Event triggered when the mouse button is pressed while the mouse moves.
+         * Starts drawing shapes from the start coordinates to the current mouse coordinates.
+         * @param e properties of the pointer
+         */
         @Override
         public void mouseDragged(MouseEvent e) {
             switch(mode){
@@ -359,6 +468,7 @@ public class myPaint extends JFrame {
                     drawNewEllipse(e.getX(),e.getY());
                     break;
                 case "draw":
+                    //Add the most recent line to the composite shape
                     drawNewLine(prevx,prevy,e.getX(), e.getY(),false);
                     shapesComp.addToComposite(new String[]{"line",Integer.toString(prevx),Integer.toString(prevy),Integer.toString(e.getX()),Integer.toString(e.getY()),Integer.toString(currentColour.getRGB())});
                     break;
@@ -378,12 +488,21 @@ public class myPaint extends JFrame {
         }
     }
 
+    /**
+     * Listener for click events on the colour buttons
+     */
     public class ColourButtonListener implements ActionListener{
 
+        /**
+         * event triggered when one of the colour buttons are clicked.
+         * Changes the currently selected colour
+         * @param e properties of the button.
+         */
         @Override
         public void actionPerformed(ActionEvent e) {
             System.out.println(e.getActionCommand());
             switch(e.getActionCommand()){
+                //depending on the choice, the current colour and label are set accordingly.
                 case "red":
                     currentColour = Color.red;
                     selColour.setText("Current Colour: red");
