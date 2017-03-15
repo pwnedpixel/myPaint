@@ -10,10 +10,11 @@ public class myPaint extends JFrame {
     private JPanel draw;
     private JPanel controls;
     private JPanel colours;
+    private JLabel infoLbl;
     private String mode="none";
     private JLabel selColour;
     private JLabel modeLbl;
-    private int prevx,prevy,startX,startY = 0;
+    private int prevx,prevy,startX,startY,prevPolyX,prevPolyY = 0;
     private ShapeComponent shapesComp;
     private Color currentColour = Color.black;
 
@@ -46,6 +47,7 @@ public class myPaint extends JFrame {
         //Add The button
         modeLbl = new JLabel("Select mode");
         selColour = new JLabel("Current Colour: black");
+        infoLbl = new JLabel("");
         controls.add(modeLbl);
         controls.add(new JLabel("---------------------------------------"));
 
@@ -58,6 +60,7 @@ public class myPaint extends JFrame {
         JButton drawBtn = new JButton("draw");
         JButton circleBtn = new JButton("circle");
         JButton squareBtn = new JButton("square");
+        JButton polygonBtn = new JButton("polygon");
         controls.add(undoBtn);
         controls.add(redoBtn);
         controls.add(lineBtn);
@@ -66,6 +69,9 @@ public class myPaint extends JFrame {
         controls.add(drawBtn);
         controls.add(circleBtn);
         controls.add(squareBtn);
+        controls.add(polygonBtn);
+        controls.add(new JLabel("---------------------------------------"));
+        controls.add(infoLbl);
 
         //ColourButtons---------------
         JButton redButton = new JButton("red");
@@ -78,6 +84,7 @@ public class myPaint extends JFrame {
         colours.add(blackButton);
         colours.add(blueButton);
         colours.add(yellowButton);
+        colours.add(new JLabel("---------------------------------------"));
 
 
         //colour button listeners------
@@ -95,6 +102,7 @@ public class myPaint extends JFrame {
         squareBtn.addActionListener(new ModeListener());
         undoBtn.addActionListener(new ModeListener());
         redoBtn.addActionListener(new ModeListener());
+        polygonBtn.addActionListener(new ModeListener());
 
         draw.addMouseListener(new MouseButtonListener());
         draw.addMouseMotionListener(new MouseMoveListener());
@@ -318,12 +326,17 @@ public class myPaint extends JFrame {
         LinkedList<String[]> shapes = new LinkedList<>();
         LinkedList<String[]> undone = new LinkedList<>();
         LinkedList<ShapeComponent> composites = new LinkedList<>();
+        boolean compStarted = false;
 
         /**
          * constructor. Doesn't really do anything
          */
         private ShapeComponent(){
 
+        }
+
+        private boolean isCompStarted(){
+            return compStarted;
         }
 
         /**
@@ -357,8 +370,9 @@ public class myPaint extends JFrame {
          * composite.
          */
         private void startComposite(){
-            System.out.println("start Composite");
+            compStarted = true;
             composites.add(new ShapeComponent());
+            shapes.add(new String[]{"composite",Integer.toString(composites.size()-1)});
         }
 
         /**
@@ -366,7 +380,7 @@ public class myPaint extends JFrame {
          * the property is its index in {@link #composites}.
          */
         private void endComposite(){
-            shapes.add(new String[]{"composite",Integer.toString(composites.size()-1)});
+            compStarted = false;
         }
 
         /**
@@ -417,20 +431,42 @@ public class myPaint extends JFrame {
 
             //sets the current mode to the button that was pressed.
             //If the given button was "undo" or "redo" then the mode stays the same.
+
             mode = (e.getActionCommand().equals("undo") || e.getActionCommand().equals("redo"))?mode:e.getActionCommand();
             modeLbl.setText("Mode: "+mode);
             switch(e.getActionCommand()){
                 case "undo":
                     shapesComp.undo();
+
+                    if (shapesComp.isCompStarted()){
+                        shapesComp.addToComposite(new String[]{"line", Integer.toString(prevPolyX), Integer.toString(prevPolyY), Integer.toString(startX),
+                                Integer.toString(startY), Integer.toString(currentColour.getRGB())});
+                        drawNewLine(prevPolyX, prevPolyY, startX,startY, true);
+                        shapesComp.endComposite();
+                    }
                     blankSpace();
                     refreshShapes();
                     break;
                 case "redo":
                     shapesComp.redo();
+                    if (shapesComp.isCompStarted()){
+                        shapesComp.addToComposite(new String[]{"line", Integer.toString(prevPolyX), Integer.toString(prevPolyY), Integer.toString(startX),
+                                Integer.toString(startY), Integer.toString(currentColour.getRGB())});
+                        drawNewLine(prevPolyX, prevPolyY, startX,startY, true);
+                        shapesComp.endComposite();
+                    }
                     blankSpace();
                     refreshShapes();
                     break;
+                case "polygon":
+                    if (shapesComp.isCompStarted()){
+                        shapesComp.endComposite();
+                        refreshShapes();
+                    } else {
+                        infoLbl.setText("<html>Click near the first point to end<br>Click button again to end early");
+                    }
                 default:
+                    //infoLbl.setText("");
                     break;
             }
         }
@@ -443,6 +479,32 @@ public class myPaint extends JFrame {
 
         @Override
         public void mouseClicked(MouseEvent e) {
+            switch(mode){
+                case "polygon":
+                    if (!shapesComp.isCompStarted()) {
+                        System.out.println("new polygon");
+                        shapesComp.startComposite();
+                        startX=e.getX();
+                        startY=e.getY();
+                        prevPolyX=e.getX();
+                        prevPolyY=e.getY();
+                    }
+                    else if(Math.abs(e.getX()-startX)<25&&Math.abs(e.getY()-startY)<25){
+                        System.out.println("End polygon");
+                        shapesComp.addToComposite(new String[]{"line", Integer.toString(prevPolyX), Integer.toString(prevPolyY), Integer.toString(startX),
+                                Integer.toString(startY), Integer.toString(currentColour.getRGB())});
+                        drawNewLine(prevPolyX, prevPolyY, startX,startY, true);
+                        shapesComp.endComposite();
+                        infoLbl.setText("");
+                    }
+                    else {
+                        shapesComp.addToComposite(new String[]{"line", Integer.toString(prevPolyX), Integer.toString(prevPolyY), Integer.toString(e.getX()),
+                                Integer.toString(e.getY()), Integer.toString(currentColour.getRGB())});
+                        prevPolyX = e.getX();
+                        prevPolyY = e.getY();
+                    }
+                    break;
+            }
         }
 
         /**
@@ -451,16 +513,20 @@ public class myPaint extends JFrame {
          */
         @Override
         public void mousePressed(MouseEvent e) {
+            if (!mode.equals("polygon")) {
+                startX = e.getX();
+                startY = e.getY();
+                prevx = e.getX();
+                prevy = e.getY();
+            }
             switch(mode){
                 case "draw":
                     //if the current mode is "draw" a new composite shape needs to be started.
                     //lines created while in the draw mode will be added to this composite.
                     shapesComp.startComposite();
+                    break;
                 default:
-                    startX = e.getX();
-                    startY = e.getY();
-                    prevx = e.getX();
-                    prevy = e.getY();
+
                     break;
             }
         }
@@ -548,16 +614,31 @@ public class myPaint extends JFrame {
                 case "circle":
                     drawNewCircle(e.getX(),e.getY());
                     break;
+                case "polygon":
+                    if (shapesComp.isCompStarted()) {
+                        drawNewLine(prevPolyX, prevPolyY, e.getX(), e.getY(), true);
+                    }
+                    prevx=e.getX();
+                    prevy=e.getY();
+                    break;
                 default:
                     break;
             }
-            prevx = e.getX();
-            prevy = e.getY();
+                prevx = e.getX();
+                prevy = e.getY();
         }
 
         @Override
         public void mouseMoved(MouseEvent e) {
-            //System.out.println("Move");
+            switch(mode){
+                case "polygon":
+                    if (shapesComp.isCompStarted()) {
+                        drawNewLine(prevPolyX, prevPolyY, e.getX(), e.getY(), true);
+                    }
+                    prevx=e.getX();
+                    prevy=e.getY();
+                    break;
+            }
         }
     }
 
