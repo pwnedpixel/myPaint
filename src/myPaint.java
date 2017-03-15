@@ -29,7 +29,7 @@ public class myPaint extends JFrame {
         draw = new JPanel();
         controls = new JPanel();
         colours = new JPanel();
-        shapesComp = new ShapeComponent(new String[]{});
+        shapesComp = new ShapeComponent();
         draw.setPreferredSize(new Dimension(375,360));
         controls.setPreferredSize(new Dimension(200,360));
         colours.setPreferredSize(new Dimension(200,360));
@@ -163,8 +163,13 @@ public class myPaint extends JFrame {
     }
 
     private void refreshShapes(){
+        drawShapeComponent(shapesComp);
+
+    }
+
+    private void drawShapeComponent(ShapeComponent componentToDraw){
+        LinkedList<String[]> shapes = componentToDraw.getShapes();
         Graphics g = draw.getGraphics();
-        LinkedList<String[]> shapes = shapesComp.getShapes();
         for (String[] shape : shapes){
             switch(shape[0]){
                 case "line":
@@ -182,8 +187,12 @@ public class myPaint extends JFrame {
                     g.drawOval(Math.min(vals[0],vals[2]),Math.min(vals[1],vals[3]),Math.abs(vals[2]-vals[0]), Math.abs(vals[1]-vals[3]));
                     break;
 
+
+
+                case "composite":
+                    drawShapeComponent(componentToDraw.getComposite(Integer.valueOf(shape[1])));
+                    break;
             }
-            draw.paintComponents(g);
         }
         draw.paintComponents(g);
     }
@@ -204,7 +213,8 @@ public class myPaint extends JFrame {
     private class ShapeComponent {
         LinkedList<String[]> shapes = new LinkedList<>();
         LinkedList<String[]> undone = new LinkedList<>();
-        private ShapeComponent(String[] args){
+        LinkedList<ShapeComponent> composites = new LinkedList<>();
+        private ShapeComponent(){
 
         }
 
@@ -217,8 +227,24 @@ public class myPaint extends JFrame {
             return shapes;
         }
 
-        public String[] getShape(int index){
-            return shapes.get(index);
+        private int getCompSize(){
+            return composites.size();
+        }
+
+        private ShapeComponent getComposite(int index){
+            return composites.get(index);
+        }
+
+        private void startComposite(){
+            composites.add(new ShapeComponent());
+        }
+
+        private void endComposite(){
+            shapes.add(new String[]{"composite",Integer.toString(composites.size()-1)});
+        }
+
+        private void addToComposite(String[] args){
+            composites.get(composites.size()-1).addShape(args);
         }
 
         private void undo(){
@@ -275,6 +301,8 @@ public class myPaint extends JFrame {
 
 
             switch(mode){
+                case "draw":
+                    shapesComp.startComposite();
                 default:
                     startX = e.getX();
                     startY = e.getY();
@@ -297,6 +325,8 @@ public class myPaint extends JFrame {
                     break;
                 case "ellipse" :
                     shapesComp.addShape(new String[]{"ellipse",Integer.toString(startX),Integer.toString(startY), Integer.toString(e.getX()),Integer.toString(e.getY()),Integer.toString(currentColour.getRGB())});
+                case "draw" :
+                    shapesComp.endComposite();
                 default:
 
                     break;
@@ -330,6 +360,7 @@ public class myPaint extends JFrame {
                     break;
                 case "draw":
                     drawNewLine(prevx,prevy,e.getX(), e.getY(),false);
+                    shapesComp.addToComposite(new String[]{"line",Integer.toString(prevx),Integer.toString(prevy),Integer.toString(e.getX()),Integer.toString(e.getY()),Integer.toString(currentColour.getRGB())});
                     break;
                 case "square":
                     drawNewSquare(e.getX(),e.getY());
