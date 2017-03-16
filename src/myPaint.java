@@ -139,6 +139,18 @@ public class myPaint extends JFrame {
         draw.paintComponents(g);
     }
 
+    private void moveLine(int stx, int sty,int newX, int newY, boolean erase){
+        Graphics g = draw.getGraphics();
+        refreshShapes();
+        if (erase) {
+            g.setColor(Color.white);
+            g.drawLine(prevx-(newX-stx), prevy-(newY-sty), prevx, prevy);
+        }
+        g.setColor(currentColour);
+        g.drawLine(stx,sty,newX,newY);
+        draw.paintComponents(g);
+    }
+
     /**
      * Draws a new rectangle from the starting points to the new coordinates.
      * Erases the rectangle that went from start to previous coordinates.
@@ -625,7 +637,9 @@ public class myPaint extends JFrame {
                     shapesComp.endComposite();
                     break;
                 case "Move":
-
+                    int xOffset = e.getX() - startX;
+                    int yOffset = e.getY() - startY;
+                    moveSelection(xOffset,yOffset);
                     break;
                 default:
 
@@ -685,9 +699,17 @@ public class myPaint extends JFrame {
                     prevy=e.getY();
                     break;
                 case "Move":
-                    int xOffset = e.getX()-prevx;
-                    int yOffset = e.getY()-prevy;
-                    moveSelection(xOffset,yOffset);
+                    for (int i =0;i<list.getSelectedIndices().length;i++) {
+                        String[] newShape = shapesComp.getElement(list.getSelectedIndices()[i]);
+                        int xOffset = e.getX() - startX;
+                        int yOffset = e.getY() - startY;
+                        switch(newShape[0]){
+                            case "line":
+                                drawNewLine(Integer.valueOf(newShape[1])+xOffset, Integer.valueOf(newShape[2])+yOffset, Integer.valueOf(newShape[3])+xOffset, Integer.valueOf(newShape[4])+yOffset, true);
+                                break;
+                        }
+                        //moveSelection(xOffset,yOffset);
+                    }
                     break;
                 default:
                     break;
