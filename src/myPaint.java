@@ -139,15 +139,20 @@ public class myPaint extends JFrame {
         draw.paintComponents(g);
     }
 
-    private void moveLine(int stx, int sty,int newX, int newY, boolean erase){
+    /**
+     * handles moving a line from the previous location to the new coordinates
+     * @param newX new x startpoint
+     * @param newY new y startpoint
+     * @param deltaX the width
+     * @param deltaY the height
+     */
+    private void moveLine(int newX, int newY,int deltaX, int deltaY){
         Graphics g = draw.getGraphics();
         refreshShapes();
-        if (erase) {
-            g.setColor(Color.white);
-            g.drawLine(prevx-(newX-stx), prevy-(newY-sty), prevx, prevy);
-        }
-        g.setColor(currentColour);
-        g.drawLine(stx,sty,newX,newY);
+        g.setColor(Color.white);
+        g.drawLine(prevPolyX, prevPolyY, prevPolyX+deltaX, prevPolyY+deltaY);
+        g.setColor(Color.black);
+        g.drawLine(newX,newY,newX+deltaX,newY+deltaY);
         draw.paintComponents(g);
     }
 
@@ -176,6 +181,17 @@ public class myPaint extends JFrame {
         g.drawRect(tx,ty,tw,th);
         draw.paintComponents(g);
 
+    }
+
+    private void moveRect(int newX, int newY, int deltaX, int deltaY){
+        Graphics g = draw.getGraphics();
+        refreshShapes();
+
+        g.setColor(Color.white);
+        g.drawRect(prevPolyX,prevPolyY,deltaX,deltaY);
+        g.setColor(Color.black);
+        g.drawRect(newX,newY,deltaX,deltaY);
+        draw.paintComponents(g);
     }
 
     /**
@@ -349,6 +365,7 @@ public class myPaint extends JFrame {
             String[] newShape;
             newShape = shapesComp.getElement(list.getSelectedIndices()[i]);
 
+            if (newShape[0].equals("composite")) break;
             newShape[1] = Integer.toString(Integer.valueOf(newShape[1])+xOffset);
             newShape[2] = Integer.toString(Integer.valueOf(newShape[2])+yOffset);
             newShape[3] = Integer.toString(Integer.valueOf(newShape[3])+xOffset);
@@ -357,6 +374,46 @@ public class myPaint extends JFrame {
             blankSpace();
             refreshShapes();
         }
+    }
+
+    public void dragShape(int currentX, int currentY, String[] newShape){
+        int xOffset = currentX - startX;
+        int yOffset = currentY - startY;
+        int width=0,height =0;
+
+        //if not a composite
+        if (!newShape[0].equals("composite")) {
+            width = Integer.valueOf(newShape[3]) - Integer.valueOf(newShape[1]);
+            height = Integer.valueOf(newShape[4]) - Integer.valueOf(newShape[2]);
+            //used to track the previous start point
+
+        }
+        switch(newShape[0]){
+            case "line":
+                prevPolyX = Integer.valueOf(newShape[1]) + prevx - startX;
+//                prevPolyX = prevx+xOffset;
+//                prevPolyY = prevy+yOffset;
+                prevPolyY = Integer.valueOf(newShape[2]) + prevy - startY;
+                moveLine(Integer.valueOf(newShape[1])+xOffset,Math.min(Integer.valueOf(newShape[2]),Integer.valueOf(newShape[4]))+yOffset,
+                        width,height);
+                break;
+            case "rectangle":
+
+                moveRect(Math.min(Integer.valueOf(newShape[1]),Integer.valueOf(newShape[3]))+xOffset,Integer.valueOf(newShape[2])+yOffset,
+                        width,height);
+                break;
+
+
+            case "composite":
+                ShapeComponent tempComp = shapesComp.getComposite(Integer.valueOf(newShape[1]));
+                for (int i =0;i<tempComp.getShapes().size();i++) {
+                    String[] shape = tempComp.getElement(i);
+
+                    dragShape(currentX,currentY,shape);
+                }
+                break;
+        }
+
     }
 
     /**
@@ -397,7 +454,7 @@ public class myPaint extends JFrame {
          */
         private void addShape(String[] args){
             shapes.add(args);
-            refreshHistory();
+            //refreshHistory();
         }
 
         /**
@@ -645,6 +702,9 @@ public class myPaint extends JFrame {
 
                     break;
             }
+            if (!mode.equals("Move")){
+                refreshHistory();
+            }
         }
 
         @Override
@@ -699,16 +759,12 @@ public class myPaint extends JFrame {
                     prevy=e.getY();
                     break;
                 case "Move":
-                    for (int i =0;i<list.getSelectedIndices().length;i++) {
+                    int currentX = e.getX();
+                    int currentY = e.getY();
+                    for (int i = 0;i<list.getSelectedIndices().length;i++) {
                         String[] newShape = shapesComp.getElement(list.getSelectedIndices()[i]);
-                        int xOffset = e.getX() - startX;
-                        int yOffset = e.getY() - startY;
-                        switch(newShape[0]){
-                            case "line":
-                                drawNewLine(Integer.valueOf(newShape[1])+xOffset, Integer.valueOf(newShape[2])+yOffset, Integer.valueOf(newShape[3])+xOffset, Integer.valueOf(newShape[4])+yOffset, true);
-                                break;
-                        }
-                        //moveSelection(xOffset,yOffset);
+
+                        dragShape(currentX,currentY,newShape);
                     }
                     break;
                 default:
