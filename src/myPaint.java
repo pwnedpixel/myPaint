@@ -25,7 +25,7 @@ public class myPaint extends JFrame {
      */
     public void init(){
         GridBagConstraints c = new GridBagConstraints();
-        this.setTitle("my Painter 9001");
+        this.setTitle("Ultimate Sketchpad 9001");
         this.setMinimumSize(new Dimension(800,400));
         this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         this.setResizable(false);
