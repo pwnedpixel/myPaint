@@ -146,11 +146,13 @@ public class myPaint extends JFrame {
      * @param deltaX the width
      * @param deltaY the height
      */
-    private void moveLine(int newX, int newY,int deltaX, int deltaY){
+    private void moveLine(int newX, int newY,int deltaX, int deltaY, int iniX, int iniY){
+        int xOffsetP = prevx - startX;
+        int yOffsetP = prevy - startY;
         Graphics g = draw.getGraphics();
         refreshShapes();
         g.setColor(Color.white);
-        g.drawLine(prevPolyX, prevPolyY, prevPolyX+deltaX, prevPolyY+deltaY);
+        g.drawLine(iniX+xOffsetP, iniY+yOffsetP, iniX+xOffsetP+deltaX, iniY+yOffsetP+deltaY);
         g.setColor(Color.black);
         g.drawLine(newX,newY,newX+deltaX,newY+deltaY);
         draw.paintComponents(g);
@@ -163,34 +165,35 @@ public class myPaint extends JFrame {
      * @param newY the new second y coordinate
      */
     private void drawNewRect(int newX, int newY){
-        int tw,th,tx,ty;
-        refreshShapes();
-        Graphics g = draw.getGraphics();
-        g.setColor(Color.white);
+        int tw,th,tx,ty,tw2,th2,tx2,ty2;
         tw = Math.abs(prevx-startX);
         th = Math.abs(prevy-startY);
         tx = Math.min(startX,prevx);
         ty = Math.min(startY,prevy);
+        tw2 = Math.abs(newX-startX);
+        th2 = Math.abs(newY-startY);
+        tx2 = Math.min(startX,newX);
+        ty2 = Math.min(startY,newY);
+        refreshShapes();
+        Graphics g = draw.getGraphics();
+        g.setColor(Color.white);
         g.drawRect(tx,ty,tw,th);
-
         g.setColor(currentColour);
-        tw = Math.abs(newX-startX);
-        th = Math.abs(newY-startY);
-        tx = Math.min(startX,newX);
-        ty = Math.min(startY,newY);
-        g.drawRect(tx,ty,tw,th);
+        g.drawRect(tx2,ty2,tw2,th2);
         draw.paintComponents(g);
 
     }
 
-    private void moveRect(int newX, int newY, int deltaX, int deltaY){
+    private void moveRect(int startXP, int startYP, int deltaX, int deltaY, int firstiniX,int firstiniY){
+        int xOffsetP = prevx - startX;
+        int yOffsetP = prevy - startY;
         Graphics g = draw.getGraphics();
         refreshShapes();
 
         g.setColor(Color.white);
-        g.drawRect(prevPolyX,prevPolyY,deltaX,deltaY);
+        g.drawRect(firstiniX+xOffsetP,firstiniY+yOffsetP,deltaX,deltaY);
         g.setColor(Color.black);
-        g.drawRect(newX,newY,deltaX,deltaY);
+        g.drawRect(startXP,startYP,deltaX,deltaY);
         draw.paintComponents(g);
     }
 
@@ -379,6 +382,7 @@ public class myPaint extends JFrame {
     public void dragShape(int currentX, int currentY, String[] newShape){
         int xOffset = currentX - startX;
         int yOffset = currentY - startY;
+
         int width=0,height =0;
 
         //if not a composite
@@ -391,16 +395,15 @@ public class myPaint extends JFrame {
         switch(newShape[0]){
             case "line":
                 prevPolyX = Integer.valueOf(newShape[1]) + prevx - startX;
-//                prevPolyX = prevx+xOffset;
-//                prevPolyY = prevy+yOffset;
                 prevPolyY = Integer.valueOf(newShape[2]) + prevy - startY;
-                moveLine(Integer.valueOf(newShape[1])+xOffset,Math.min(Integer.valueOf(newShape[2]),Integer.valueOf(newShape[4]))+yOffset,
-                        width,height);
+                moveLine(Math.min(Integer.valueOf(newShape[1]),Integer.valueOf(newShape[3]))+xOffset,Math.min(Integer.valueOf(newShape[2]),Integer.valueOf(newShape[4]))+yOffset,
+                        width,height, Math.min(Integer.valueOf(newShape[1]),Integer.valueOf(newShape[3])),Math.min(Integer.valueOf(newShape[2]),Integer.valueOf(newShape[4])));
                 break;
             case "rectangle":
 
                 moveRect(Math.min(Integer.valueOf(newShape[1]),Integer.valueOf(newShape[3]))+xOffset,Integer.valueOf(newShape[2])+yOffset,
-                        width,height);
+                        width,height,Math.min(Integer.valueOf(newShape[1]),Integer.valueOf(newShape[3])),
+                        Math.min(Integer.valueOf(newShape[2]),Integer.valueOf(newShape[4])));
                 break;
 
 
