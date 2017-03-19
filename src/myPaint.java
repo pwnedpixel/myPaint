@@ -130,7 +130,7 @@ public class myPaint extends JFrame {
      * @param erase where or not to erase the old line
      */
     private void drawNewLine(int stx, int sty,int newX, int newY, boolean erase){
-
+        refreshShapes();
         if (erase) {
             g.setColor(Color.white);
             g.drawLine(stx, sty, prevx, prevy);
@@ -165,6 +165,7 @@ public class myPaint extends JFrame {
      * @param newY the new second y coordinate
      */
     private void drawNewRect(int newX, int newY){
+        refreshShapes();
         int tw,th,tx,ty,tw2,th2,tx2,ty2;
         tw = Math.abs(prevx-startX);
         th = Math.abs(prevy-startY);
@@ -186,14 +187,14 @@ public class myPaint extends JFrame {
     private void moveRect(int startXP, int startYP, int deltaX, int deltaY, int firstIniX,int firstIniY){
         int xOffsetP = prevx - startX;
         int yOffsetP = prevy - startY;
-        Graphics g = draw.getGraphics();
-        refreshShapes();
+        //Graphics g = draw.getGraphics();
+       // refreshShapes();
 
         g.setColor(Color.white);
         g.drawRect(firstIniX+xOffsetP,firstIniY+yOffsetP,deltaX,deltaY);
         g.setColor(Color.black);
         g.drawRect(startXP,startYP,deltaX,deltaY);
-        draw.paintComponents(g);
+        //draw.paintComponents(g);
     }
 
     /**
@@ -203,6 +204,7 @@ public class myPaint extends JFrame {
      * @param newY the new second y coordinate
      */
     private void drawNewEllipse(int newX, int newY){
+        refreshShapes();
         int tw,th,tx,ty,tw2,th2,tx2,ty2;
 
         Graphics g = draw.getGraphics();
@@ -230,6 +232,7 @@ public class myPaint extends JFrame {
      * @param newY the new second y coordinate
      */
     private void drawNewSquare(int newX, int newY){
+        refreshShapes();
         int tw,th,max,newStartX,newStartY,tw2,th2,max2,newStartX2,newStartY2;
 
         g.setColor(Color.white);
@@ -257,6 +260,7 @@ public class myPaint extends JFrame {
      * @param newY the new second y coordinate
      */
     private void drawNewCircle(int newX, int newY){
+        refreshShapes();
         int tw,th,max,newStartX,newStartY,tw2,th2,max2,newStartX2,newStartY2;
 
         g.setColor(Color.white);
@@ -373,7 +377,7 @@ public class myPaint extends JFrame {
             newShape[4] = Integer.toString(Integer.valueOf(newShape[4]) + yOffset);
             component.replaceShape(newShape, shapeIndex);
             blankSpace();
-            //refreshShapes();
+
 
         }
     }
@@ -710,7 +714,6 @@ public class myPaint extends JFrame {
                     int yOffset = e.getY() - startY;
                     for (int i =0;i<list.getSelectedIndices().length;i++) {
                         moveSelection(xOffset, yOffset,shapesComp.getElement(list.getSelectedIndices()[i]),list.getSelectedIndices()[i], shapesComp);
-                        refreshShapes();
                     }
                     break;
                 default:
@@ -748,15 +751,12 @@ public class myPaint extends JFrame {
             switch(mode){
                 case "line":
                     drawNewLine(startX,startY,e.getX(), e.getY(),true);
-                    refreshShapes();
                     break;
                 case "rectangle":
                     drawNewRect(e.getX(),e.getY());
-                    refreshShapes();
                     break;
                 case "ellipse":
                     drawNewEllipse(e.getX(),e.getY());
-                    refreshShapes();
                     break;
                 case "draw":
                     //Add the most recent line to the composite shape
@@ -765,11 +765,9 @@ public class myPaint extends JFrame {
                     break;
                 case "square":
                     drawNewSquare(e.getX(),e.getY());
-                    refreshShapes();
                     break;
                 case "circle":
                     drawNewCircle(e.getX(),e.getY());
-                    refreshShapes();
                     break;
                 case "polygon":
                     if (shapesComp.isCompStarted()) {
