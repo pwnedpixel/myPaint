@@ -147,12 +147,14 @@ public class myPaint extends JFrame {
      * @param deltaX the width
      * @param deltaY the height
      */
+
     private void moveLine(int newX, int newY,int deltaX, int deltaY, int iniX, int iniY){
         int xOffsetP = prevx - startX;
         int yOffsetP = prevy - startY;
        // Graphics g = draw.getGraphics();
+
         g.setColor(Color.white);
-        g.drawLine(iniX+xOffsetP, iniY+yOffsetP, iniX+xOffsetP+deltaX, iniY+yOffsetP+deltaY);
+        g.drawLine(prevPolyX, prevPolyY, prevPolyX+deltaX, prevPolyY+deltaY);
         g.setColor(Color.black);
         g.drawLine(newX,newY,newX+deltaX,newY+deltaY);
         //refreshShapes();
@@ -165,12 +167,14 @@ public class myPaint extends JFrame {
      * @param newY the new second y coordinate
      */
     private void drawNewRect(int newX, int newY){
+
         refreshShapes();
         int tw,th,tx,ty,tw2,th2,tx2,ty2;
+
         tw = Math.abs(prevx-startX);
         th = Math.abs(prevy-startY);
         tx = Math.min(startX,prevx);
-        ty = Math.min(startY,prevy);
+        ty = Math.min(startX,prevx);
         tw2 = Math.abs(newX-startX);
         th2 = Math.abs(newY-startY);
         tx2 = Math.min(startX,newX);
@@ -194,7 +198,6 @@ public class myPaint extends JFrame {
         g.drawRect(firstIniX+xOffsetP,firstIniY+yOffsetP,deltaX,deltaY);
         g.setColor(Color.black);
         g.drawRect(startXP,startYP,deltaX,deltaY);
-        //draw.paintComponents(g);
     }
 
     /**
@@ -398,8 +401,7 @@ public class myPaint extends JFrame {
                 width = Integer.valueOf(newShape[3]) - Integer.valueOf(newShape[1]);
                 height = Integer.valueOf(newShape[4]) - Integer.valueOf(newShape[2]);
                 moveRect(Math.min(Integer.valueOf(newShape[1]),Integer.valueOf(newShape[3]))+xOffset,Integer.valueOf(newShape[2])+yOffset,
-                        width,height,Math.min(Integer.valueOf(newShape[1]),Integer.valueOf(newShape[3])),
-                        Math.min(Integer.valueOf(newShape[2]),Integer.valueOf(newShape[4])));
+                        width,height, Math.min(Integer.valueOf(newShape[1]),Integer.valueOf(newShape[3])),Integer.valueOf(newShape[2]));
                 break;
             case "composite":
                 ShapeComponent tempComp = shapesComp.getComposite(Integer.valueOf(newShape[1]));
