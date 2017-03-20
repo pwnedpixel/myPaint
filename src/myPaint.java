@@ -1,3 +1,5 @@
+import sun.java2d.pipe.ShapeSpanIterator;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -608,9 +610,11 @@ public class myPaint extends JFrame {
                 String[] newShape = shapesComp.getElement(list.getSelectedIndices()[i]);
                 if (newShape[0].equals("composite")){
                     System.out.println("composite");
-                    composites.add(this.getComposite(Integer.valueOf(newShape[1])));
+                    startComposite();
+                    for (int x = 0;x<shapesComp.getComposite(Integer.parseInt(newShape[1])).getShapes().size();x++){
+                        shapesComp.addToComposite(shapesComp.getComposite(Integer.parseInt(newShape[1])).getShapes().get(x).clone());
+                    }
 
-                    copied.add(new String[]{"composite",Integer.toString(composites.size()-1)});
                 } else {
                     copied.add(newShape.clone());
                 }
