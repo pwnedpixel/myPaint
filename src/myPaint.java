@@ -19,7 +19,6 @@ public class myPaint extends JFrame {
     private int prevx,prevy,startX,startY,prevPolyX,prevPolyY = 0;
     private ShapeComponent shapesComp;
     private Color currentColour = Color.black;
-    Graphics g;
 
     /**
      * Initializes the layout of the UI, adds event listeners to the buttons and paint are
@@ -112,13 +111,17 @@ public class myPaint extends JFrame {
         history.add(listScrollPane);
         history.add(clearSelectionBtn);
 
-        clearSelectionBtn.addActionListener(e -> list.clearSelection());
+        clearSelectionBtn.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                list.clearSelection();
+            }
+        });
 
         this.add(draw,c);
         this.add(controls,c);
         this.add(history,c);
         this.setVisible(true);
-        g=draw.getGraphics();
     }
 
     /**
@@ -130,6 +133,7 @@ public class myPaint extends JFrame {
      * @param erase where or not to erase the old line
      */
     private void drawNewLine(int stx, int sty,int newX, int newY, boolean erase){
+        Graphics g = draw.getGraphics();
         refreshShapes();
         if (erase) {
             g.setColor(Color.white);
@@ -137,7 +141,7 @@ public class myPaint extends JFrame {
         }
         g.setColor(currentColour);
         g.drawLine(stx,sty,newX,newY);
-
+        draw.paintComponents(g);
     }
 
     /**
@@ -147,17 +151,16 @@ public class myPaint extends JFrame {
      * @param deltaX the width
      * @param deltaY the height
      */
-
     private void moveLine(int newX, int newY,int deltaX, int deltaY, int iniX, int iniY){
         int xOffsetP = prevx - startX;
         int yOffsetP = prevy - startY;
-       // Graphics g = draw.getGraphics();
-
+        Graphics g = draw.getGraphics();
+        refreshShapes();
         g.setColor(Color.white);
-        g.drawLine(prevPolyX, prevPolyY, prevPolyX+deltaX, prevPolyY+deltaY);
+        g.drawLine(iniX+xOffsetP, iniY+yOffsetP, iniX+xOffsetP+deltaX, iniY+yOffsetP+deltaY);
         g.setColor(Color.black);
         g.drawLine(newX,newY,newX+deltaX,newY+deltaY);
-        //refreshShapes();
+        draw.paintComponents(g);
     }
 
     /**
@@ -167,37 +170,36 @@ public class myPaint extends JFrame {
      * @param newY the new second y coordinate
      */
     private void drawNewRect(int newX, int newY){
-
-        refreshShapes();
         int tw,th,tx,ty,tw2,th2,tx2,ty2;
-
         tw = Math.abs(prevx-startX);
         th = Math.abs(prevy-startY);
         tx = Math.min(startX,prevx);
-        ty = Math.min(startX,prevx);
+        ty = Math.min(startY,prevy);
         tw2 = Math.abs(newX-startX);
         th2 = Math.abs(newY-startY);
         tx2 = Math.min(startX,newX);
         ty2 = Math.min(startY,newY);
-      //  Graphics g = draw.getGraphics();
+        refreshShapes();
+        Graphics g = draw.getGraphics();
         g.setColor(Color.white);
         g.drawRect(tx,ty,tw,th);
         g.setColor(currentColour);
         g.drawRect(tx2,ty2,tw2,th2);
-
+        draw.paintComponents(g);
 
     }
 
-    private void moveRect(int startXP, int startYP, int deltaX, int deltaY, int firstIniX,int firstIniY){
+    private void moveRect(int startXP, int startYP, int deltaX, int deltaY, int firstiniX,int firstiniY){
         int xOffsetP = prevx - startX;
         int yOffsetP = prevy - startY;
-        //Graphics g = draw.getGraphics();
-       // refreshShapes();
+        Graphics g = draw.getGraphics();
+        refreshShapes();
 
         g.setColor(Color.white);
-        g.drawRect(firstIniX+xOffsetP,firstIniY+yOffsetP,deltaX,deltaY);
+        g.drawRect(firstiniX+xOffsetP,firstiniY+yOffsetP,deltaX,deltaY);
         g.setColor(Color.black);
         g.drawRect(startXP,startYP,deltaX,deltaY);
+        draw.paintComponents(g);
     }
 
     /**
@@ -207,25 +209,36 @@ public class myPaint extends JFrame {
      * @param newY the new second y coordinate
      */
     private void drawNewEllipse(int newX, int newY){
+        int tw,th,tx,ty;
         refreshShapes();
-        int tw,th,tx,ty,tw2,th2,tx2,ty2;
-
         Graphics g = draw.getGraphics();
         g.setColor(Color.white);
         tw = Math.abs(prevx-startX);
         th = Math.abs(prevy-startY);
         tx = Math.min(startX,prevx);
         ty = Math.min(startY,prevy);
-        tw2 = Math.abs(newX-startX);
-        th2 = Math.abs(newY-startY);
-        tx2 = Math.min(startX,newX);
-        ty2 = Math.min(startY,newY);
-
         g.drawOval(tx,ty,tw,th);
 
         g.setColor(currentColour);
-        g.drawOval(tx2,ty2,tw2,th2);
+        tw = Math.abs(newX-startX);
+        th = Math.abs(newY-startY);
+        tx = Math.min(startX,newX);
+        ty = Math.min(startY,newY);
+        g.drawOval(tx,ty,tw,th);
+        draw.paintComponents(g);
+    }
 
+    private void moveEllipse(int startXP, int startYP, int deltaX, int deltaY, int firstiniX,int firstiniY){
+        int xOffsetP = prevx - startX;
+        int yOffsetP = prevy - startY;
+        Graphics g = draw.getGraphics();
+        refreshShapes();
+
+        g.setColor(Color.white);
+        g.drawOval(firstiniX+xOffsetP,firstiniY+yOffsetP,deltaX,deltaY);
+        g.setColor(Color.black);
+        g.drawOval(startXP,startYP,deltaX,deltaY);
+        draw.paintComponents(g);
     }
 
     /**
@@ -235,24 +248,42 @@ public class myPaint extends JFrame {
      * @param newY the new second y coordinate
      */
     private void drawNewSquare(int newX, int newY){
+        int tw,th,max,newStartX,newStartY;
         refreshShapes();
-        int tw,th,max,newStartX,newStartY,tw2,th2,max2,newStartX2,newStartY2;
-
+        Graphics g = draw.getGraphics();
         g.setColor(Color.white);
         tw = Math.abs(prevx-startX);
         th = Math.abs(prevy-startY);
         max = Math.max(tw,th);
         newStartX=(prevx-startX<0)?startX-max:startX;
         newStartY=(prevy-startY<0)?startY-max:startY;
-        tw2 = Math.abs(newX-startX);
-        th2 = Math.abs(newY-startY);
-        max2 = Math.max(tw2,th2);
-        newStartX2=(newX-startX<0)?startX-max2:startX;
-        newStartY2=(newY-startY<0)?startY-max2:startY;
         g.drawRect(newStartX,newStartY,max,max);
 
         g.setColor(currentColour);
-        g.drawRect(newStartX2,newStartY2,max2,max2);
+        tw = Math.abs(newX-startX);
+        th = Math.abs(newY-startY);
+        max = Math.max(tw,th);
+        newStartX=(newX-startX<0)?startX-max:startX;
+        newStartY=(newY-startY<0)?startY-max:startY;
+        g.drawRect(newStartX,newStartY,max,max);
+        draw.paintComponents(g);
+
+    }
+
+    private void moveSquare(int firstX, int firstY, int endX, int endY,int xOffset,int yOffset){
+        int max = Math.max(Math.abs(endX-firstX),Math.abs(endY-firstY));
+        int xOffsetP = prevx - startX;
+        int yOffsetP = prevy - startY;
+        Graphics g = draw.getGraphics();
+        refreshShapes();
+
+        g.setColor(Color.white);
+        g.drawRect(((endX-firstX<0)?firstX-max:firstX)+xOffsetP,((endY-firstY<0)?firstY-max:firstY)+yOffsetP
+                ,max,max);
+        g.setColor(Color.black);
+        g.drawRect(((endX-firstX<0)?firstX-max:firstX)+xOffset,((endY-firstY<0)?firstY-max:firstY)+yOffset
+                ,max,max);
+        draw.paintComponents(g);
 
     }
 
@@ -263,24 +294,41 @@ public class myPaint extends JFrame {
      * @param newY the new second y coordinate
      */
     private void drawNewCircle(int newX, int newY){
+        int tw,th,max,newStartX,newStartY;
         refreshShapes();
-        int tw,th,max,newStartX,newStartY,tw2,th2,max2,newStartX2,newStartY2;
-
+        Graphics g = draw.getGraphics();
         g.setColor(Color.white);
         tw = Math.abs(prevx-startX);
         th = Math.abs(prevy-startY);
         max = Math.max(tw,th);
         newStartX=(prevx-startX<0)?startX-max:startX;
         newStartY=(prevy-startY<0)?startY-max:startY;
-        tw2 = Math.abs(newX-startX);
-        th2 = Math.abs(newY-startY);
-        max2 = Math.max(tw2,th2);
-        newStartX2=(newX-startX<0)?startX-max2:startX;
-        newStartY2=(newY-startY<0)?startY-max2:startY;
-
         g.drawOval(newStartX,newStartY,max,max);
+
         g.setColor(currentColour);
-        g.drawOval(newStartX2,newStartY2,max2,max2);
+        tw = Math.abs(newX-startX);
+        th = Math.abs(newY-startY);
+        max = Math.max(tw,th);
+        newStartX=(newX-startX<0)?startX-max:startX;
+        newStartY=(newY-startY<0)?startY-max:startY;
+        g.drawOval(newStartX,newStartY,max,max);
+        draw.paintComponents(g);
+    }
+
+    private void moveCircle(int firstX, int firstY, int endX, int endY,int xOffset,int yOffset){
+        int max = Math.max(Math.abs(endX-firstX),Math.abs(endY-firstY));
+        int xOffsetP = prevx - startX;
+        int yOffsetP = prevy - startY;
+        Graphics g = draw.getGraphics();
+        refreshShapes();
+
+        g.setColor(Color.white);
+        g.drawOval(((endX-firstX<0)?firstX-max:firstX)+xOffsetP,((endY-firstY<0)?firstY-max:firstY)+yOffsetP
+                ,max,max);
+        g.setColor(Color.black);
+        g.drawOval(((endX-firstX<0)?firstX-max:firstX)+xOffset,((endY-firstY<0)?firstY-max:firstY)+yOffset
+                ,max,max);
+        draw.paintComponents(g);
 
     }
 
@@ -288,7 +336,6 @@ public class myPaint extends JFrame {
      * called to redraw all saved shapes and shape components
      */
     private void refreshShapes(){
-        System.out.println("RefreshShapes");
         drawShapeComponent(shapesComp);
     }
 
@@ -298,7 +345,7 @@ public class myPaint extends JFrame {
      */
     private void drawShapeComponent(ShapeComponent componentToDraw){
         LinkedList<String[]> shapes = componentToDraw.getShapes();
-       // Graphics g = draw.getGraphics();
+        Graphics g = draw.getGraphics();
         int max, newStartX,newStartY;
         for (String[] shape : shapes){
             switch(shape[0]){
@@ -339,7 +386,7 @@ public class myPaint extends JFrame {
                     break;
             }
         }
-        //draw.paintComponents(g);
+        draw.paintComponents(g);
     }
 
     /**
@@ -380,7 +427,7 @@ public class myPaint extends JFrame {
             newShape[4] = Integer.toString(Integer.valueOf(newShape[4]) + yOffset);
             component.replaceShape(newShape, shapeIndex);
             blankSpace();
-
+            refreshShapes();
 
         }
     }
@@ -398,16 +445,30 @@ public class myPaint extends JFrame {
                         width,height,Integer.valueOf(newShape[1]),Integer.valueOf(newShape[2]));
                 break;
             case "rectangle":
-                width = Integer.valueOf(newShape[3]) - Integer.valueOf(newShape[1]);
-                height = Integer.valueOf(newShape[4]) - Integer.valueOf(newShape[2]);
-                moveRect(Math.min(Integer.valueOf(newShape[1]),Integer.valueOf(newShape[3]))+xOffset,Integer.valueOf(newShape[2])+yOffset,
-                        width,height, Math.min(Integer.valueOf(newShape[1]),Integer.valueOf(newShape[3])),Integer.valueOf(newShape[2]));
+                width = Math.abs(Integer.valueOf(newShape[3]) - Integer.valueOf(newShape[1]));
+                height = Math.abs(Integer.valueOf(newShape[4]) - Integer.valueOf(newShape[2]));
+                moveRect(Math.min(Integer.valueOf(newShape[1]),Integer.valueOf(newShape[3]))+xOffset,Math.min(Integer.valueOf(newShape[2]),Integer.valueOf(newShape[4]))+yOffset,
+                        width,height,Math.min(Integer.valueOf(newShape[1]),Integer.valueOf(newShape[3])),
+                        Math.min(Integer.valueOf(newShape[2]),Integer.valueOf(newShape[4])));
+                break;
+            case "square":
+                moveSquare(Integer.valueOf(newShape[1]),Integer.valueOf(newShape[2]),Integer.valueOf(newShape[3]),Integer.valueOf(newShape[4]),xOffset,yOffset);
+                break;
+            case "circle":
+                moveCircle(Integer.valueOf(newShape[1]),Integer.valueOf(newShape[2]),Integer.valueOf(newShape[3]),Integer.valueOf(newShape[4]),xOffset,yOffset);
+                break;
+            case "ellipse":
+                width = Math.abs(Integer.valueOf(newShape[3]) - Integer.valueOf(newShape[1]));
+                height = Math.abs(Integer.valueOf(newShape[4]) - Integer.valueOf(newShape[2]));
+                moveEllipse(Math.min(Integer.valueOf(newShape[1]),Integer.valueOf(newShape[3]))+xOffset,Math.min(Integer.valueOf(newShape[2]),Integer.valueOf(newShape[4]))+yOffset,
+                        width,height,Math.min(Integer.valueOf(newShape[1]),Integer.valueOf(newShape[3])),
+                        Math.min(Integer.valueOf(newShape[2]),Integer.valueOf(newShape[4])));
                 break;
             case "composite":
                 ShapeComponent tempComp = shapesComp.getComposite(Integer.valueOf(newShape[1]));
-                if (tempComp.getShapes().size()<50)
+                if (tempComp.getShapes().size()<100)
                 {
-                    System.out.println("asdfasdfas"+tempComp.getShapes().size());
+                    System.out.println("ShapeCount"+tempComp.getShapes().size());
                     for (int i = 0; i < tempComp.getShapes().size(); i++) {
                         String[] shape = tempComp.getElement(i);
                         dragShape(currentX, currentY, shape);
@@ -477,6 +538,14 @@ public class myPaint extends JFrame {
         }
 
         /**
+         * removes the given shape from the list of shapes
+         * @param index the index of the shape
+         */
+        private void removeShape(int index){
+            shapes.remove(index);
+        }
+
+        /**
          * Composites are store in a seperate list. This function allows access to one at a given index.
          * The index is saved in one of the composite type shape's properties.
          * @param index the index of the composite to fetch.
@@ -502,14 +571,6 @@ public class myPaint extends JFrame {
          */
         private void endComposite(){
             compStarted = false;
-        }
-
-        /**
-         * removes the given shape from the list of shapes
-         * @param index the index of the shape
-         */
-        private void removeShape(int index){
-            shapes.remove(index);
         }
 
         /**
@@ -790,8 +851,8 @@ public class myPaint extends JFrame {
                 default:
                     break;
             }
-                prevx = e.getX();
-                prevy = e.getY();
+            prevx = e.getX();
+            prevy = e.getY();
         }
 
         @Override
@@ -800,11 +861,9 @@ public class myPaint extends JFrame {
                 case "polygon":
                     if (shapesComp.isCompStarted()) {
                         drawNewLine(prevPolyX, prevPolyY, e.getX(), e.getY(), true);
-                        refreshShapes();
                     }
                     prevx=e.getX();
                     prevy=e.getY();
-
                     break;
             }
         }
