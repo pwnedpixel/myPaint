@@ -9,11 +9,14 @@ import java.util.LinkedList;
 public class myPaint extends JFrame {
     private JPanel draw;
     private JPanel controls;
-    private JPanel colours;
+    private JPanel history;
+    private JLabel infoLbl;
     private String mode="none";
-    private JLabel selColour;
     private JLabel modeLbl;
-    private int prevx,prevy,startX,startY = 0;
+    private DefaultListModel listModel;
+    private JScrollPane listScrollPane;
+    private JList list;
+    private int prevx,prevy,startX,startY,prevPolyX,prevPolyY = 0;
     private ShapeComponent shapesComp;
     private Color currentColour = Color.black;
 
@@ -22,7 +25,7 @@ public class myPaint extends JFrame {
      */
     public void init(){
         GridBagConstraints c = new GridBagConstraints();
-        this.setTitle("my Painter 9001");
+        this.setTitle("Ultimate Sketchpad 9001");
         this.setMinimumSize(new Dimension(800,400));
         this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         this.setResizable(false);
@@ -30,26 +33,20 @@ public class myPaint extends JFrame {
 
         draw = new JPanel();
         controls = new JPanel();
-        colours = new JPanel();
+        history = new JPanel();
         shapesComp = new ShapeComponent();
         draw.setPreferredSize(new Dimension(375,360));
+        history.setPreferredSize(new Dimension(200,360));
         controls.setPreferredSize(new Dimension(200,360));
-        colours.setPreferredSize(new Dimension(200,360));
         //draw.setBorder(BorderFactory.createLineBorder(Color.black));
-        controls.setBorder(BorderFactory.createLineBorder(Color.red));
-        colours.setBorder(BorderFactory.createLineBorder(Color.blue));
+        controls.setBorder(BorderFactory.createLineBorder(currentColour));
+        history.setBorder(BorderFactory.createLineBorder(Color.black));
         draw.setBackground(Color.white);
-        this.add(draw,c);
-        this.add(controls,c);
-        this.add(colours,c);
 
-        //Add The button
+        //Control Items----------------------------------
         modeLbl = new JLabel("Select mode");
-        selColour = new JLabel("Current Colour: black");
-        controls.add(modeLbl);
-        controls.add(new JLabel("---------------------------------------"));
+        infoLbl = new JLabel("");
 
-        //Control Buttons----------
         JButton undoBtn = new JButton("undo");
         JButton redoBtn = new JButton("redo");
         JButton lineBtn = new JButton("line");
@@ -58,6 +55,14 @@ public class myPaint extends JFrame {
         JButton drawBtn = new JButton("draw");
         JButton circleBtn = new JButton("circle");
         JButton squareBtn = new JButton("square");
+        JButton polygonBtn = new JButton("polygon");
+        JButton changeClrButton = new JButton("Select New Colour");
+        JButton moveSelBtn = new JButton("Move");
+        JButton deleteBtn = new JButton("Delete");
+        moveSelBtn.setPreferredSize(new Dimension(75,25));
+        deleteBtn.setPreferredSize(new Dimension(75,25));
+        controls.add(modeLbl);
+        controls.add(new JLabel("---------------------------------------"));
         controls.add(undoBtn);
         controls.add(redoBtn);
         controls.add(lineBtn);
@@ -66,27 +71,15 @@ public class myPaint extends JFrame {
         controls.add(drawBtn);
         controls.add(circleBtn);
         controls.add(squareBtn);
+        controls.add(polygonBtn);
+        controls.add(new JLabel("---------------------------------------"));
+        controls.add(changeClrButton);
+        controls.add(moveSelBtn);
+        controls.add(deleteBtn);
+        controls.add(infoLbl);
 
-        //ColourButtons---------------
-        JButton redButton = new JButton("red");
-        JButton blackButton = new JButton("black");
-        JButton blueButton = new JButton("blue");
-        JButton yellowButton = new JButton("yellow");
-        colours.add(selColour);
-        colours.add(new JLabel("---------------------------------------"));
-        colours.add(redButton);
-        colours.add(blackButton);
-        colours.add(blueButton);
-        colours.add(yellowButton);
+        changeClrButton.addActionListener(new ColourButtonListener());
 
-
-        //colour button listeners------
-        redButton.addActionListener(new ColourButtonListener());
-        blackButton.addActionListener(new ColourButtonListener());
-        blueButton.addActionListener(new ColourButtonListener());
-        yellowButton.addActionListener(new ColourButtonListener());
-
-        //control Button listeners-----
         lineBtn.addActionListener(new ModeListener());
         rectBtn.addActionListener(new ModeListener());
         ellipseBtn.addActionListener(new ModeListener());
@@ -95,10 +88,39 @@ public class myPaint extends JFrame {
         squareBtn.addActionListener(new ModeListener());
         undoBtn.addActionListener(new ModeListener());
         redoBtn.addActionListener(new ModeListener());
+        polygonBtn.addActionListener(new ModeListener());
+        moveSelBtn.addActionListener(new ModeListener());
+        deleteBtn.addActionListener(new ModeListener());
 
+        //DRAW items--------------------------------------------------------
         draw.addMouseListener(new MouseButtonListener());
         draw.addMouseMotionListener(new MouseMoveListener());
 
+        //History items-------------------------------------------------------
+
+        listModel = new DefaultListModel();
+        JButton clearSelectionBtn = new JButton("Clear Selection");
+        list = new JList(listModel);
+        list.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        list.setPreferredSize(new Dimension(160,400));
+        listScrollPane = new JScrollPane(list);
+        listScrollPane.setPreferredSize(new Dimension(180,270));
+
+        history.add(new JLabel("Current Items:"));
+        history.add(new JLabel("---------------------------------------"));
+        history.add(listScrollPane);
+        history.add(clearSelectionBtn);
+
+        clearSelectionBtn.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                list.clearSelection();
+            }
+        });
+
+        this.add(draw,c);
+        this.add(controls,c);
+        this.add(history,c);
         this.setVisible(true);
     }
 
@@ -123,30 +145,61 @@ public class myPaint extends JFrame {
     }
 
     /**
+     * handles moving a line from the previous location to the new coordinates
+     * @param newX new x startpoint
+     * @param newY new y startpoint
+     * @param deltaX the width
+     * @param deltaY the height
+     */
+    private void moveLine(int newX, int newY,int deltaX, int deltaY, int iniX, int iniY){
+        int xOffsetP = prevx - startX;
+        int yOffsetP = prevy - startY;
+        Graphics g = draw.getGraphics();
+        refreshShapes();
+        g.setColor(Color.white);
+        g.drawLine(iniX+xOffsetP, iniY+yOffsetP, iniX+xOffsetP+deltaX, iniY+yOffsetP+deltaY);
+        g.setColor(Color.black);
+        g.drawLine(newX,newY,newX+deltaX,newY+deltaY);
+        draw.paintComponents(g);
+    }
+
+    /**
      * Draws a new rectangle from the starting points to the new coordinates.
      * Erases the rectangle that went from start to previous coordinates.
      * @param newX the new second x coordinate
      * @param newY the new second y coordinate
      */
     private void drawNewRect(int newX, int newY){
-        int tw,th,tx,ty;
-        refreshShapes();
-        Graphics g = draw.getGraphics();
-        g.setColor(Color.white);
+        int tw,th,tx,ty,tw2,th2,tx2,ty2;
         tw = Math.abs(prevx-startX);
         th = Math.abs(prevy-startY);
         tx = Math.min(startX,prevx);
         ty = Math.min(startY,prevy);
+        tw2 = Math.abs(newX-startX);
+        th2 = Math.abs(newY-startY);
+        tx2 = Math.min(startX,newX);
+        ty2 = Math.min(startY,newY);
+        refreshShapes();
+        Graphics g = draw.getGraphics();
+        g.setColor(Color.white);
         g.drawRect(tx,ty,tw,th);
-
         g.setColor(currentColour);
-        tw = Math.abs(newX-startX);
-        th = Math.abs(newY-startY);
-        tx = Math.min(startX,newX);
-        ty = Math.min(startY,newY);
-        g.drawRect(tx,ty,tw,th);
+        g.drawRect(tx2,ty2,tw2,th2);
         draw.paintComponents(g);
 
+    }
+
+    private void moveRect(int startXP, int startYP, int deltaX, int deltaY, int firstiniX,int firstiniY){
+        int xOffsetP = prevx - startX;
+        int yOffsetP = prevy - startY;
+        Graphics g = draw.getGraphics();
+        refreshShapes();
+
+        g.setColor(Color.white);
+        g.drawRect(firstiniX+xOffsetP,firstiniY+yOffsetP,deltaX,deltaY);
+        g.setColor(Color.black);
+        g.drawRect(startXP,startYP,deltaX,deltaY);
+        draw.paintComponents(g);
     }
 
     /**
@@ -175,11 +228,24 @@ public class myPaint extends JFrame {
         draw.paintComponents(g);
     }
 
+    private void moveEllipse(int startXP, int startYP, int deltaX, int deltaY, int firstiniX,int firstiniY){
+        int xOffsetP = prevx - startX;
+        int yOffsetP = prevy - startY;
+        Graphics g = draw.getGraphics();
+        refreshShapes();
+
+        g.setColor(Color.white);
+        g.drawOval(firstiniX+xOffsetP,firstiniY+yOffsetP,deltaX,deltaY);
+        g.setColor(Color.black);
+        g.drawOval(startXP,startYP,deltaX,deltaY);
+        draw.paintComponents(g);
+    }
+
     /**
      * Draws a square from the startX and startY to the given x and y parameters.
      * Erases the square that went from start to previous coordinates.
-     * @param newX
-     * @param newY
+     * @param newX the new second x coordinate
+     * @param newY the new second y coordinate
      */
     private void drawNewSquare(int newX, int newY){
         int tw,th,max,newStartX,newStartY;
@@ -204,6 +270,68 @@ public class myPaint extends JFrame {
 
     }
 
+    private void moveSquare(int firstX, int firstY, int endX, int endY,int xOffset,int yOffset){
+        int max = Math.max(Math.abs(endX-firstX),Math.abs(endY-firstY));
+        int xOffsetP = prevx - startX;
+        int yOffsetP = prevy - startY;
+        Graphics g = draw.getGraphics();
+        refreshShapes();
+
+        g.setColor(Color.white);
+        g.drawRect(((endX-firstX<0)?firstX-max:firstX)+xOffsetP,((endY-firstY<0)?firstY-max:firstY)+yOffsetP
+                ,max,max);
+        g.setColor(Color.black);
+        g.drawRect(((endX-firstX<0)?firstX-max:firstX)+xOffset,((endY-firstY<0)?firstY-max:firstY)+yOffset
+                ,max,max);
+        draw.paintComponents(g);
+
+    }
+
+    /**
+     * Draws a circle from the startX and startY to the given x and y parameters.
+     * Erases the circle that went from start to previous coordinates.
+     * @param newX the new second x coordinate
+     * @param newY the new second y coordinate
+     */
+    private void drawNewCircle(int newX, int newY){
+        int tw,th,max,newStartX,newStartY;
+        refreshShapes();
+        Graphics g = draw.getGraphics();
+        g.setColor(Color.white);
+        tw = Math.abs(prevx-startX);
+        th = Math.abs(prevy-startY);
+        max = Math.max(tw,th);
+        newStartX=(prevx-startX<0)?startX-max:startX;
+        newStartY=(prevy-startY<0)?startY-max:startY;
+        g.drawOval(newStartX,newStartY,max,max);
+
+        g.setColor(currentColour);
+        tw = Math.abs(newX-startX);
+        th = Math.abs(newY-startY);
+        max = Math.max(tw,th);
+        newStartX=(newX-startX<0)?startX-max:startX;
+        newStartY=(newY-startY<0)?startY-max:startY;
+        g.drawOval(newStartX,newStartY,max,max);
+        draw.paintComponents(g);
+    }
+
+    private void moveCircle(int firstX, int firstY, int endX, int endY,int xOffset,int yOffset){
+        int max = Math.max(Math.abs(endX-firstX),Math.abs(endY-firstY));
+        int xOffsetP = prevx - startX;
+        int yOffsetP = prevy - startY;
+        Graphics g = draw.getGraphics();
+        refreshShapes();
+
+        g.setColor(Color.white);
+        g.drawOval(((endX-firstX<0)?firstX-max:firstX)+xOffsetP,((endY-firstY<0)?firstY-max:firstY)+yOffsetP
+                ,max,max);
+        g.setColor(Color.black);
+        g.drawOval(((endX-firstX<0)?firstX-max:firstX)+xOffset,((endY-firstY<0)?firstY-max:firstY)+yOffset
+                ,max,max);
+        draw.paintComponents(g);
+
+    }
+
     /**
      * called to redraw all saved shapes and shape components
      */
@@ -218,6 +346,7 @@ public class myPaint extends JFrame {
     private void drawShapeComponent(ShapeComponent componentToDraw){
         LinkedList<String[]> shapes = componentToDraw.getShapes();
         Graphics g = draw.getGraphics();
+        int max, newStartX,newStartY;
         for (String[] shape : shapes){
             switch(shape[0]){
                 case "line":
@@ -238,10 +367,19 @@ public class myPaint extends JFrame {
                     int[] sqVals = {Integer.valueOf(shape[1]),Integer.valueOf(shape[2]),Integer.valueOf(shape[3]),Integer.valueOf(shape[4])};
                     g.setColor(new Color(Integer.parseInt(shape[5])));
 
-                    int max = Math.max(Math.abs(sqVals[2]-sqVals[0]),Math.abs(sqVals[3]-sqVals[1]));
-                    int newStartX=(sqVals[2]-sqVals[0]<0)?sqVals[0]-max:sqVals[0];
-                    int newStartY=(sqVals[3]-sqVals[1]<0)?sqVals[1]-max:sqVals[1];
+                    max = Math.max(Math.abs(sqVals[2]-sqVals[0]),Math.abs(sqVals[3]-sqVals[1]));
+                    newStartX=(sqVals[2]-sqVals[0]<0)?sqVals[0]-max:sqVals[0];
+                    newStartY=(sqVals[3]-sqVals[1]<0)?sqVals[1]-max:sqVals[1];
                     g.drawRect(newStartX,newStartY,max,max);
+                    break;
+                case "circle" :
+                    int[] cirVals = {Integer.valueOf(shape[1]),Integer.valueOf(shape[2]),Integer.valueOf(shape[3]),Integer.valueOf(shape[4])};
+                    g.setColor(new Color(Integer.parseInt(shape[5])));
+
+                    max = Math.max(Math.abs(cirVals[2]-cirVals[0]),Math.abs(cirVals[3]-cirVals[1]));
+                    newStartX=(cirVals[2]-cirVals[0]<0)?cirVals[0]-max:cirVals[0];
+                    newStartY=(cirVals[3]-cirVals[1]<0)?cirVals[1]-max:cirVals[1];
+                    g.drawOval(newStartX,newStartY,max,max);
                     break;
                 case "composite":
                     drawShapeComponent(componentToDraw.getComposite(Integer.valueOf(shape[1])));
@@ -259,6 +397,86 @@ public class myPaint extends JFrame {
         g.setColor(Color.white);
         g.fillRect(0,0,draw.getWidth(),draw.getHeight());
         draw.paintComponents(g);
+    }
+
+    private void refreshHistory(){
+        System.out.println("refresh History");
+
+        list.removeAll();
+        listModel.removeAllElements();
+        for (int i =0;i<shapesComp.getShapes().size();i++){
+            System.out.println(i);
+            listModel.addElement(i+": "+shapesComp.getElement(i)[0]);
+        }
+
+        history.revalidate();
+        history.repaint();
+    }
+
+    private void moveSelection(int xOffset, int yOffset, String[] newShape, int shapeIndex, ShapeComponent component){
+        if (newShape[0].equals("composite")) {
+            ShapeComponent tempComp = component.getComposite(Integer.valueOf(newShape[1]));
+            for (int x =0;x<tempComp.getShapes().size();x++) {
+                String[] shape = tempComp.getElement(x);
+                moveSelection(xOffset,yOffset,shape,x,tempComp);
+            }
+        } else {
+            newShape[1] = Integer.toString(Integer.valueOf(newShape[1]) + xOffset);
+            newShape[2] = Integer.toString(Integer.valueOf(newShape[2]) + yOffset);
+            newShape[3] = Integer.toString(Integer.valueOf(newShape[3]) + xOffset);
+            newShape[4] = Integer.toString(Integer.valueOf(newShape[4]) + yOffset);
+            component.replaceShape(newShape, shapeIndex);
+            blankSpace();
+            refreshShapes();
+
+        }
+    }
+
+    public void dragShape(int currentX, int currentY, String[] newShape){
+        int xOffset = currentX - startX;
+        int yOffset = currentY - startY;
+
+        int width,height;
+        switch(newShape[0]){
+            case "line":
+                width = Integer.valueOf(newShape[3]) - Integer.valueOf(newShape[1]);
+                height = Integer.valueOf(newShape[4]) - Integer.valueOf(newShape[2]);
+                moveLine(Integer.valueOf(newShape[1])+xOffset,Integer.valueOf(newShape[2])+yOffset,
+                        width,height,Integer.valueOf(newShape[1]),Integer.valueOf(newShape[2]));
+                break;
+            case "rectangle":
+                width = Math.abs(Integer.valueOf(newShape[3]) - Integer.valueOf(newShape[1]));
+                height = Math.abs(Integer.valueOf(newShape[4]) - Integer.valueOf(newShape[2]));
+                moveRect(Math.min(Integer.valueOf(newShape[1]),Integer.valueOf(newShape[3]))+xOffset,Math.min(Integer.valueOf(newShape[2]),Integer.valueOf(newShape[4]))+yOffset,
+                        width,height,Math.min(Integer.valueOf(newShape[1]),Integer.valueOf(newShape[3])),
+                        Math.min(Integer.valueOf(newShape[2]),Integer.valueOf(newShape[4])));
+                break;
+            case "square":
+                moveSquare(Integer.valueOf(newShape[1]),Integer.valueOf(newShape[2]),Integer.valueOf(newShape[3]),Integer.valueOf(newShape[4]),xOffset,yOffset);
+                break;
+            case "circle":
+                moveCircle(Integer.valueOf(newShape[1]),Integer.valueOf(newShape[2]),Integer.valueOf(newShape[3]),Integer.valueOf(newShape[4]),xOffset,yOffset);
+                break;
+            case "ellipse":
+                width = Math.abs(Integer.valueOf(newShape[3]) - Integer.valueOf(newShape[1]));
+                height = Math.abs(Integer.valueOf(newShape[4]) - Integer.valueOf(newShape[2]));
+                moveEllipse(Math.min(Integer.valueOf(newShape[1]),Integer.valueOf(newShape[3]))+xOffset,Math.min(Integer.valueOf(newShape[2]),Integer.valueOf(newShape[4]))+yOffset,
+                        width,height,Math.min(Integer.valueOf(newShape[1]),Integer.valueOf(newShape[3])),
+                        Math.min(Integer.valueOf(newShape[2]),Integer.valueOf(newShape[4])));
+                break;
+            case "composite":
+                ShapeComponent tempComp = shapesComp.getComposite(Integer.valueOf(newShape[1]));
+                if (tempComp.getShapes().size()<100)
+                {
+                    System.out.println("ShapeCount"+tempComp.getShapes().size());
+                    for (int i = 0; i < tempComp.getShapes().size(); i++) {
+                        String[] shape = tempComp.getElement(i);
+                        dragShape(currentX, currentY, shape);
+                    }
+                    break;
+                }
+        }
+
     }
 
     /**
@@ -280,6 +498,7 @@ public class myPaint extends JFrame {
         LinkedList<String[]> shapes = new LinkedList<>();
         LinkedList<String[]> undone = new LinkedList<>();
         LinkedList<ShapeComponent> composites = new LinkedList<>();
+        boolean compStarted = false;
 
         /**
          * constructor. Doesn't really do anything
@@ -288,12 +507,17 @@ public class myPaint extends JFrame {
 
         }
 
+        private boolean isCompStarted(){
+            return compStarted;
+        }
+
         /**
          * Adds a shape with the given arguments to the list of shapes
          * @param args the properties of the shape
          */
         private void addShape(String[] args){
             shapes.add(args);
+            //refreshHistory();
         }
 
         /**
@@ -302,6 +526,23 @@ public class myPaint extends JFrame {
          */
         private LinkedList<String[]> getShapes(){
             return shapes;
+        }
+
+        private String[] getElement(int index){
+            return shapes.get(index);
+        }
+
+        private void replaceShape(String[] newShape, int index){
+            shapes.remove(index);
+            shapes.add(index,newShape);
+        }
+
+        /**
+         * removes the given shape from the list of shapes
+         * @param index the index of the shape
+         */
+        private void removeShape(int index){
+            shapes.remove(index);
         }
 
         /**
@@ -319,8 +560,9 @@ public class myPaint extends JFrame {
          * composite.
          */
         private void startComposite(){
-            System.out.println("start Composite");
+            compStarted = true;
             composites.add(new ShapeComponent());
+            shapes.add(new String[]{"composite",Integer.toString(composites.size()-1)});
         }
 
         /**
@@ -328,7 +570,7 @@ public class myPaint extends JFrame {
          * the property is its index in {@link #composites}.
          */
         private void endComposite(){
-            shapes.add(new String[]{"composite",Integer.toString(composites.size()-1)});
+            compStarted = false;
         }
 
         /**
@@ -336,7 +578,6 @@ public class myPaint extends JFrame {
          * @param args The properties of the shape.
          */
         private void addToComposite(String[] args){
-            System.out.println("add to comp Composite");
             composites.get(composites.size()-1).addShape(args);
         }
 
@@ -350,6 +591,7 @@ public class myPaint extends JFrame {
                 undone.add(shapes.get(shapes.size()-1));
                 shapes.remove(shapes.size()-1);
             }
+            refreshHistory();
         }
 
         /**
@@ -358,10 +600,11 @@ public class myPaint extends JFrame {
          */
         private void redo(){
             if (undone.size()!=0){
-                System.out.println("UndoCalled");
+                System.out.println("RedoCalled");
                 shapes.add(undone.get(undone.size()-1));
                 undone.remove(undone.size()-1);
             }
+            refreshHistory();
         }
     }
 
@@ -380,21 +623,60 @@ public class myPaint extends JFrame {
 
             //sets the current mode to the button that was pressed.
             //If the given button was "undo" or "redo" then the mode stays the same.
-            mode = (e.getActionCommand().equals("undo") || e.getActionCommand().equals("redo"))?mode:e.getActionCommand();
+
+            mode = (e.getActionCommand().equals("Delete") ||e.getActionCommand().equals("undo") || e.getActionCommand().equals("redo"))?mode:e.getActionCommand();
             modeLbl.setText("Mode: "+mode);
             switch(e.getActionCommand()){
                 case "undo":
                     shapesComp.undo();
+
+                    if (shapesComp.isCompStarted()){
+                        shapesComp.addToComposite(new String[]{"line", Integer.toString(prevPolyX), Integer.toString(prevPolyY), Integer.toString(startX),
+                                Integer.toString(startY), Integer.toString(currentColour.getRGB())});
+                        drawNewLine(prevPolyX, prevPolyY, startX,startY, true);
+                        shapesComp.endComposite();
+                    }
                     blankSpace();
                     refreshShapes();
                     break;
                 case "redo":
                     shapesComp.redo();
+                    if (shapesComp.isCompStarted()){
+                        shapesComp.addToComposite(new String[]{"line", Integer.toString(prevPolyX), Integer.toString(prevPolyY), Integer.toString(startX),
+                                Integer.toString(startY), Integer.toString(currentColour.getRGB())});
+                        drawNewLine(prevPolyX, prevPolyY, startX,startY, true);
+                        shapesComp.endComposite();
+                    }
                     blankSpace();
                     refreshShapes();
                     break;
+                case "Delete":
+                    for (int i = 0;i<list.getSelectedIndices().length;i++) {
+                        shapesComp.removeShape(list.getSelectedIndices()[0]);
+                    }
+                    blankSpace();
+                    refreshShapes();
+                    refreshHistory();
+                    break;
+                case "polygon":
+                    if (shapesComp.isCompStarted()){
+                        if (startX!=prevPolyX&&startY!=prevPolyX) {
+                            shapesComp.endComposite();
+                        }
+                        blankSpace();
+                        refreshShapes();
+                    }
+                    break;
+                case "Move":
+
+                    break;
                 default:
                     break;
+            }
+            if (mode.equals("polygon")){
+                infoLbl.setText("<html>Click near the first point to end<br>Click button again to end early");
+            } else {
+                infoLbl.setText("");
             }
         }
     }
@@ -406,6 +688,31 @@ public class myPaint extends JFrame {
 
         @Override
         public void mouseClicked(MouseEvent e) {
+            switch(mode){
+                case "polygon":
+                    if (!shapesComp.isCompStarted()) {
+                        System.out.println("new polygon");
+                        shapesComp.startComposite();
+                        startX=e.getX();
+                        startY=e.getY();
+                        prevPolyX=e.getX();
+                        prevPolyY=e.getY();
+                    }
+                    else if(Math.abs(e.getX()-startX)<25&&Math.abs(e.getY()-startY)<25){
+                        System.out.println("End polygon");
+                        shapesComp.addToComposite(new String[]{"line", Integer.toString(prevPolyX), Integer.toString(prevPolyY), Integer.toString(startX),
+                                Integer.toString(startY), Integer.toString(currentColour.getRGB())});
+                        drawNewLine(prevPolyX, prevPolyY, startX,startY, true);
+                        shapesComp.endComposite();
+                    }
+                    else {
+                        shapesComp.addToComposite(new String[]{"line", Integer.toString(prevPolyX), Integer.toString(prevPolyY), Integer.toString(e.getX()),
+                                Integer.toString(e.getY()), Integer.toString(currentColour.getRGB())});
+                        prevPolyX = e.getX();
+                        prevPolyY = e.getY();
+                    }
+                    break;
+            }
         }
 
         /**
@@ -414,16 +721,20 @@ public class myPaint extends JFrame {
          */
         @Override
         public void mousePressed(MouseEvent e) {
+            if (!mode.equals("polygon")) {
+                startX = e.getX();
+                startY = e.getY();
+                prevx = e.getX();
+                prevy = e.getY();
+            }
             switch(mode){
                 case "draw":
                     //if the current mode is "draw" a new composite shape needs to be started.
                     //lines created while in the draw mode will be added to this composite.
                     shapesComp.startComposite();
+                    break;
                 default:
-                    startX = e.getX();
-                    startY = e.getY();
-                    prevx = e.getX();
-                    prevy = e.getY();
+
                     break;
             }
         }
@@ -439,7 +750,6 @@ public class myPaint extends JFrame {
                 case "line":
                     shapesComp.addShape(new String[]{"line",Integer.toString(startX),Integer.toString(startY),Integer.toString(e.getX()),
                             Integer.toString(e.getY()),Integer.toString(currentColour.getRGB())});
-                    System.out.println("new Colour: "+ currentColour.toString());
                     break;
                 case "rectangle" :
                     shapesComp.addShape(new String[]{"rectangle",Integer.toString(startX),Integer.toString(startY),Integer.toString(e.getX())
@@ -453,13 +763,28 @@ public class myPaint extends JFrame {
                     shapesComp.addShape(new String[]{"square",Integer.toString(startX),Integer.toString(startY),Integer.toString(e.getX())
                             ,Integer.toString(e.getY()),Integer.toString(currentColour.getRGB())});
                     break;
+                case "circle":
+                    shapesComp.addShape(new String[]{"circle",Integer.toString(startX),Integer.toString(startY),Integer.toString(e.getX())
+                            ,Integer.toString(e.getY()),Integer.toString(currentColour.getRGB())});
+                    break;
                 case "draw" :
                     //we are done adding to the current composite shape. it will add itself to the list of shapes
                     //when endComposite() is called.
                     shapesComp.endComposite();
+                    break;
+                case "Move":
+                    int xOffset = e.getX() - startX;
+                    int yOffset = e.getY() - startY;
+                    for (int i =0;i<list.getSelectedIndices().length;i++) {
+                        moveSelection(xOffset, yOffset,shapesComp.getElement(list.getSelectedIndices()[i]),list.getSelectedIndices()[i], shapesComp);
+                    }
+                    break;
                 default:
 
                     break;
+            }
+            if (!mode.equals("Move")){
+                refreshHistory();
             }
         }
 
@@ -504,6 +829,25 @@ public class myPaint extends JFrame {
                 case "square":
                     drawNewSquare(e.getX(),e.getY());
                     break;
+                case "circle":
+                    drawNewCircle(e.getX(),e.getY());
+                    break;
+                case "polygon":
+                    if (shapesComp.isCompStarted()) {
+                        drawNewLine(prevPolyX, prevPolyY, e.getX(), e.getY(), true);
+                    }
+                    prevx=e.getX();
+                    prevy=e.getY();
+                    break;
+                case "Move":
+                    int currentX = e.getX();
+                    int currentY = e.getY();
+                    for (int i = 0;i<list.getSelectedIndices().length;i++) {
+                        String[] newShape = shapesComp.getElement(list.getSelectedIndices()[i]);
+
+                        dragShape(currentX,currentY,newShape);
+                    }
+                    break;
                 default:
                     break;
             }
@@ -513,7 +857,15 @@ public class myPaint extends JFrame {
 
         @Override
         public void mouseMoved(MouseEvent e) {
-            //System.out.println("Move");
+            switch(mode){
+                case "polygon":
+                    if (shapesComp.isCompStarted()) {
+                        drawNewLine(prevPolyX, prevPolyY, e.getX(), e.getY(), true);
+                    }
+                    prevx=e.getX();
+                    prevy=e.getY();
+                    break;
+            }
         }
     }
 
@@ -530,25 +882,11 @@ public class myPaint extends JFrame {
         @Override
         public void actionPerformed(ActionEvent e) {
             System.out.println(e.getActionCommand());
-            switch(e.getActionCommand()){
-                //depending on the choice, the current colour and label are set accordingly.
-                case "red":
-                    currentColour = Color.red;
-                    selColour.setText("Current Colour: red");
-                    break;
-                case "blue":
-                    currentColour = Color.blue;
-                    selColour.setText("Current Colour: blue");
-                    break;
-                case "black":
-                    currentColour = Color.black;
-                    selColour.setText("Current Colour: black");
-                    break;
-                case "yellow":
-                    currentColour = Color.yellow;
-                    selColour.setText("Current Colour: yellow");
-                    break;
+            currentColour = JColorChooser.showDialog(controls,"Choose a Colour",currentColour);
+            if (currentColour==null){
+                currentColour = Color.black;
             }
+            controls.setBorder(BorderFactory.createLineBorder(currentColour));
         }
     }
 }
