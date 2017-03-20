@@ -59,6 +59,8 @@ public class myPaint extends JFrame {
         JButton changeClrButton = new JButton("Select New Colour");
         JButton moveSelBtn = new JButton("Move");
         JButton deleteBtn = new JButton("Delete");
+        JButton copyButton = new JButton("copy");
+        JButton pasteButton = new JButton(("paste"));
         moveSelBtn.setPreferredSize(new Dimension(75,25));
         deleteBtn.setPreferredSize(new Dimension(75,25));
         controls.add(modeLbl);
@@ -76,6 +78,8 @@ public class myPaint extends JFrame {
         controls.add(changeClrButton);
         controls.add(moveSelBtn);
         controls.add(deleteBtn);
+        controls.add(copyButton);
+        controls.add(pasteButton);
         controls.add(infoLbl);
 
         changeClrButton.addActionListener(new ColourButtonListener());
@@ -91,6 +95,8 @@ public class myPaint extends JFrame {
         polygonBtn.addActionListener(new ModeListener());
         moveSelBtn.addActionListener(new ModeListener());
         deleteBtn.addActionListener(new ModeListener());
+        copyButton.addActionListener(new ModeListener());
+        pasteButton.addActionListener(new ModeListener());
 
         //DRAW items--------------------------------------------------------
         draw.addMouseListener(new MouseButtonListener());
@@ -345,9 +351,14 @@ public class myPaint extends JFrame {
      */
     private void drawShapeComponent(ShapeComponent componentToDraw){
         LinkedList<String[]> shapes = componentToDraw.getShapes();
-        Graphics g = draw.getGraphics();
+        drawShapeList(shapes, componentToDraw);
+
+    }
+
+    private void drawShapeList(LinkedList<String[]> shapesToDraw, ShapeComponent parentComp){
         int max, newStartX,newStartY;
-        for (String[] shape : shapes){
+        Graphics g = draw.getGraphics();
+        for (String[] shape : shapesToDraw){
             switch(shape[0]){
                 case "line":
                     g.setColor(new Color(Integer.parseInt(shape[5])));
@@ -382,7 +393,7 @@ public class myPaint extends JFrame {
                     g.drawOval(newStartX,newStartY,max,max);
                     break;
                 case "composite":
-                    drawShapeComponent(componentToDraw.getComposite(Integer.valueOf(shape[1])));
+                    drawShapeComponent(parentComp.getComposite(Integer.valueOf(shape[1])));
                     break;
             }
         }
@@ -498,6 +509,7 @@ public class myPaint extends JFrame {
         LinkedList<String[]> shapes = new LinkedList<>();
         LinkedList<String[]> undone = new LinkedList<>();
         LinkedList<ShapeComponent> composites = new LinkedList<>();
+        LinkedList<String[]> copied = new LinkedList<>();
         boolean compStarted = false;
 
         /**
@@ -582,6 +594,27 @@ public class myPaint extends JFrame {
         }
 
         /**
+         * Copies all currently selected shapes to a list
+         */
+        private void copy(){
+            copied.clear();
+            for (int i = 0;i<list.getSelectedIndices().length;i++) {
+                String[] newShape = shapesComp.getElement(list.getSelectedIndices()[i]);
+                copied.add(newShape.clone());
+            }
+
+        }
+
+        private void paste(){
+            for (String[] shp : copied){
+                shapes.add(shp.clone());
+            }
+            //drawShapeList(copied, this);
+            refreshShapes();
+            refreshHistory();
+        }
+
+        /**
          * Undoes the last drawn shape by moving it from {@link #shapes} to {@link #undone}.
          * This will prevent it from getting redrawn, but make it available to be redone.
          */
@@ -624,7 +657,8 @@ public class myPaint extends JFrame {
             //sets the current mode to the button that was pressed.
             //If the given button was "undo" or "redo" then the mode stays the same.
 
-            mode = (e.getActionCommand().equals("Delete") ||e.getActionCommand().equals("undo") || e.getActionCommand().equals("redo"))?mode:e.getActionCommand();
+            mode = (e.getActionCommand().equals("copy")||e.getActionCommand().equals("paste")||e.getActionCommand().equals("Delete")
+                    ||e.getActionCommand().equals("undo") || e.getActionCommand().equals("redo"))?mode:e.getActionCommand();
             modeLbl.setText("Mode: "+mode);
             switch(e.getActionCommand()){
                 case "undo":
@@ -667,8 +701,11 @@ public class myPaint extends JFrame {
                         refreshShapes();
                     }
                     break;
-                case "Move":
-
+                case "copy":
+                    shapesComp.copy();
+                    break;
+                case "paste":
+                    shapesComp.paste();
                     break;
                 default:
                     break;
